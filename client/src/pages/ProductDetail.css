@@ -1,0 +1,127 @@
+.pd {
+  display: grid;
+  grid-template-columns: 420px 1fr;
+  gap: 40px;
+}
+
+.pd-image {
+  aspect-ratio: 1 / 1;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+.pd-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.pd-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.pd-category {
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary-dark-solid);
+}
+
+.pd-info h1 {
+  font-size: 30px;
+}
+
+.pd-price {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-primary-dark-solid);
+}
+
+.pd-description {
+  color: var(--color-text-muted);
+  line-height: 1.6;
+  max-width: 52ch;
+}
+
+.pd-variants label,
+.pd-quantity label {
+  display: block;
+  font-size: 13px;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.pd-variant-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pd-variant-btn {
+  padding: 9px 16px;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  font-weight: 600;
+  font-size: 13.5px;
+}
+
+.pd-variant-btn:hover {
+  border-color: var(--color-primary);
+}
+
+.pd-variant-btn.selected {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: #fff;
+}
+
+.pd-quantity {
+  margin-top: 10px;
+}
+
+.pd-quantity-control {
+  display: inline-flex;
+  align-items: center;
+  border: 1.5px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.pd-quantity-control button {
+  width: 40px;
+  height: 40px;
+  border: none;
+  background: var(--color-bg);
+  font-size: 18px;
+}
+
+.pd-quantity-control span {
+  width: 44px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.pd-add {
+  margin-top: 8px;
+  width: fit-content;
+  padding: 14px 28px;
+}
+
+.pd-cart-link {
+  font-weight: 600;
+  color: var(--color-primary-dark-solid);
+  margin-top: 4px;
+}
+
+@media (max-width: 800px) {
+  .pd {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+}

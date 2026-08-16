@@ -1,0 +1,41 @@
+.footer {
+  margin-top: 40px;
+  background: var(--color-primary-dark-solid);
+  color: rgba(255, 255, 255, 0.85);
+}
+
+.footer-inner {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding: 36px 20px 24px;
+}
+
+.footer h4 {
+  font-size: 18px;
+  color: #fff;
+  margin-bottom: 6px;
+}
+
+.footer-muted {
+  color: rgba(255, 255, 255, 0.65);
+  font-size: 14px;
+}
+
+.footer-contact p {
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.footer-strip {
+  height: 4px;
+  background: var(--color-accent);
+}
+
+.footer-bottom {
+  text-align: center;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 14px 20px;
+}

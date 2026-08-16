@@ -1,0 +1,124 @@
+.cart-title {
+  font-size: 26px;
+  margin-bottom: 20px;
+}
+
+.cart-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.cart-row {
+  display: grid;
+  grid-template-columns: 64px 1fr auto auto auto;
+  align-items: center;
+  gap: 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+}
+
+.cart-row-image {
+  width: 64px;
+  height: 64px;
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+  background: var(--color-bg);
+}
+
+.cart-row-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.cart-row-name {
+  font-weight: 600;
+  font-size: 14.5px;
+}
+
+.cart-row-variant {
+  font-weight: 500;
+  color: var(--color-text-muted);
+}
+
+.cart-row-price {
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.cart-row-qty button {
+  width: 34px;
+  height: 34px;
+  font-size: 16px;
+}
+
+.cart-row-qty span {
+  width: 32px;
+}
+
+.cart-row-subtotal {
+  font-weight: 700;
+  min-width: 80px;
+  text-align: right;
+}
+
+.cart-row-remove {
+  border: none;
+  background: transparent;
+  color: var(--color-text-muted);
+  font-size: 16px;
+  padding: 6px;
+}
+
+.cart-row-remove:hover {
+  color: var(--color-danger);
+}
+
+.cart-summary {
+  margin-top: 28px;
+  border-top: 1px solid var(--color-border);
+  padding-top: 20px;
+}
+
+.cart-summary-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 16px;
+}
+
+.cart-summary-total {
+  color: var(--color-primary-dark-solid);
+  font-size: 22px;
+}
+
+.cart-summary-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+@media (max-width: 640px) {
+  .cart-row {
+    grid-template-columns: 48px 1fr auto;
+    grid-template-areas:
+      "image name remove"
+      "image qty subtotal";
+    row-gap: 8px;
+  }
+  .cart-row-image { grid-area: image; width: 48px; height: 48px; }
+  .cart-row-info { grid-area: name; }
+  .cart-row-qty { grid-area: qty; }
+  .cart-row-subtotal { grid-area: subtotal; }
+  .cart-row-remove { grid-area: remove; }
+  .cart-summary-actions {
+    flex-direction: column-reverse;
+  }
+  .cart-summary-actions .btn {
+    width: 100%;
+  }
+}

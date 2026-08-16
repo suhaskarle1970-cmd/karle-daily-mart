@@ -1,0 +1,95 @@
+.hero-slider {
+  position: relative;
+}
+
+.hero-slide {
+  height: 420px;
+  background-size: cover;
+  background-position: center;
+  background-color: var(--color-primary-dark-solid);
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(90deg, rgba(22, 79, 55, 0.88) 0%, rgba(22, 79, 55, 0.55) 55%, rgba(22, 79, 55, 0.25) 100%);
+}
+
+.hero-content {
+  position: relative;
+  z-index: 1;
+  color: #fff;
+  max-width: 560px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.hero-content h1 {
+  font-size: 40px;
+  font-weight: 600;
+}
+
+.hero-content p {
+  font-size: 16px;
+  color: rgba(255, 255, 255, 0.9);
+}
+
+.hero-cta {
+  width: fit-content;
+  margin-top: 6px;
+}
+
+/* Signature element: a torn-receipt edge, nodding to the client's
+   barcode/billing-slip identity, separating the hero from the page. */
+.hero-torn-edge {
+  height: 14px;
+  background: var(--color-bg);
+  -webkit-mask-image: repeating-linear-gradient(
+    115deg,
+    transparent 0 6px,
+    #000 6px 14px
+  );
+  mask-image: repeating-linear-gradient(
+    115deg,
+    transparent 0 6px,
+    #000 6px 14px
+  );
+}
+
+.hero-dots {
+  position: absolute;
+  bottom: 26px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 8px;
+  z-index: 1;
+}
+
+.hero-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(255, 255, 255, 0.5);
+  padding: 0;
+}
+
+.hero-dot.active {
+  background: var(--color-accent);
+  width: 22px;
+  border-radius: 4px;
+}
+
+@media (max-width: 640px) {
+  .hero-slide {
+    height: 340px;
+  }
+  .hero-content h1 {
+    font-size: 28px;
+  }
+}
