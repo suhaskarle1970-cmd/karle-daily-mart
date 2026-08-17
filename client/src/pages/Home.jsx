@@ -3,113 +3,146 @@ import { Link } from "react-router-dom";
 import api from "../services/api";
 import HeroSlider from "../components/HeroSlider";
 import ProductCard from "../components/ProductCard";
-import CategoryTile from "../components/CategoryTile";
 import { LoadingGrid, ErrorState } from "../components/States";
-import { useDepartments } from "../hooks/useDepartments";
 import "./Home.css";
 
+const DEPARTMENTS = [
+  {
+    id: "grocery-kitchen",
+    label: "Grocery & Kitchen",
+  },
+  {
+    id: "snacks-drinks",
+    label: "Snacks & Drinks",
+  },
+  {
+    id: "beauty-personal-care",
+    label: "Beauty & Personal Care",
+  },
+  {
+    id: "household-essentials",
+    label: "Household Essentials",
+  },
+];
+
 export default function Home() {
-  const { departments } = useDepartments();
   const [slides, setSlides] = useState([]);
-  const [categories, setCategories] = useState([]);
   const [featured, setFeatured] = useState([]);
+  const [departmentProducts, setDepartmentProducts] = useState({});
   const [status, setStatus] = useState("loading");
 
   useEffect(() => {
     load();
   }, []);
 
-  function load() {
+  async function load() {
     setStatus("loading");
-    Promise.all([
-      api.get("/sliders"),
-      api.get("/categories"),
-      api.get("/products", { params: { limit: 8 } }),
-    ])
-      .then(([sliderRes, catRes, prodRes]) => {
-        setSlides(sliderRes.data.sliders);
-        setCategories(catRes.data.categories);
-        setFeatured(prodRes.data.products);
-        setStatus("ready");
-      })
-      .catch(() => setStatus("error"));
+
+    try {
+      const [sliderRes, homepageRes] = await Promise.all([
+        api.get("/sliders"),
+        api.get("/products/homepage"),
+      ]);
+
+      setSlides(sliderRes.data.sliders || []);
+      setFeatured(homepageRes.data.featured || []);
+      setDepartmentProducts(homepageRes.data.departments || {});
+
+      setStatus("ready");
+    } catch (error) {
+      console.error(error);
+      setStatus("error");
+    }
   }
 
   if (status === "error") {
     return (
       <div className="container">
-        <ErrorState message="Couldn't load the store right now." onRetry={load} />
+        <ErrorState
+          message="Couldn't load the store right now."
+          onRetry={load}
+        />
       </div>
     );
   }
-
-  const categoriesByDepartment = departments
-    .map((dept) => ({
-      ...dept,
-      categories: categories.filter((c) => c.department === dept.id),
-    }))
-    .filter((dept) => dept.categories.length > 0);
 
   return (
     <>
       {status === "ready" && <HeroSlider slides={slides} />}
 
+      {/* FEATURED PRODUCTS */}
       <section className="container section">
         <div className="section-heading">
-          <h2>Featured products</h2>
+          <h2>Featured Products</h2>
+
           <Link to="/products" className="section-link">
             View all →
           </Link>
         </div>
+
         {status === "loading" ? (
-          <LoadingGrid count={8} />
+          <LoadingGrid count={6} />
         ) : (
           <div className="product-grid">
-            {featured.map((p) => (
-              <ProductCard key={p._id} product={p} />
+            {featured.map((product) => (
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         )}
       </section>
 
+      {/* DEPARTMENT SECTIONS */}
       {status === "loading" &&
-        Array.from({ length: 2 }).map((_, i) => (
-          <section key={i} className="container section department-section">
-            <div className="skeleton-line" style={{ width: 180, height: 22, marginBottom: 16 }} />
-            <div className="category-tile-row">
-              {Array.from({ length: 6 }).map((__, j) => (
-                <div key={j} className="skeleton-img" style={{ width: 76, height: 76, borderRadius: "50%" }} />
-              ))}
-            </div>
+        DEPARTMENTS.map((department) => (
+          <section
+            key={department.id}
+            className="container section department-section"
+          >
+            <div
+              className="skeleton-line"
+              style={{
+                width: 220,
+                height: 22,
+                marginBottom: 16,
+              }}
+            />
+
+            <LoadingGrid count={4} />
           </section>
         ))}
 
       {status === "ready" &&
-        categoriesByDepartment.map((dept) => (
-          <section key={dept.id} className="container section department-section">
-            <div className="section-heading">
-              <h2>{dept.label}</h2>
-            </div>
-            <div className="category-tile-row">
-              {dept.categories.map((c) => (
-                <CategoryTile key={c._id} category={c} />
-              ))}
-            </div>
-          </section>
-        ))}
+        DEPARTMENTS.map((department) => {
+          const products = departmentProducts[department.id] || [];
 
-      {status === "ready" && categoriesByDepartment.length === 0 && categories.length > 0 && (
-        <section className="container section">
-          <div className="section-heading">
-            <h2>Shop by category</h2>
-          </div>
-          <div className="category-tile-row" style={{ flexWrap: "wrap" }}>
-            {categories.map((c) => (
-              <CategoryTile key={c._id} category={c} />
-            ))}
-          </div>
-        </section>
-      )}
+          if (products.length === 0) {
+            return null;
+          }
+
+          return (
+            <section
+              key={department.id}
+              className="container section department-section"
+            >
+              <div className="section-heading">
+                <h2>{department.label}</h2>
+
+                <Link
+                  to={`/products?department=${department.id}`}
+                  className="section-link"
+                >
+                  View all →
+                </Link>
+              </div>
+
+              <div className="product-grid">
+                {products.map((product) => (
+                  <ProductCard key={product._id} product={product} />
+                ))}
+              </div>
+            </section>
+          );
+        })}
     </>
   );
 }

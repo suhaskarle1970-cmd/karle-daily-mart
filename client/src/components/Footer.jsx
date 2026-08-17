@@ -17,7 +17,14 @@ export default function Footer() {
         </div>
       </div>
       <div className="footer-strip" aria-hidden="true" />
-      <p className="footer-bottom">© {new Date().getFullYear()} {config.storeName}. All rights reserved.</p>
+      <div className="copyright-section">
+        <p className="footer-bottom">
+          © {new Date().getFullYear()} {config.storeName}. All rights reserved.
+        </p>
+        <p className="developer-info">
+          Designed & developed by Vedant Shinde • 8208664612
+        </p>
+      </div>
     </footer>
   );
 }

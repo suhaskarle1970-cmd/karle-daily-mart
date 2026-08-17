@@ -9,7 +9,10 @@ const PAGE_SIZE_MAX = 60;
 export async function listProducts(req, res, next) {
   try {
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
-    const limit = Math.min(PAGE_SIZE_MAX, Math.max(1, parseInt(req.query.limit, 10) || PAGE_SIZE_DEFAULT));
+    const limit = Math.min(
+      PAGE_SIZE_MAX,
+      Math.max(1, parseInt(req.query.limit, 10) || PAGE_SIZE_DEFAULT),
+    );
     const { category, search, includeInactive } = req.query;
 
     const filter = includeInactive === "true" ? {} : { active: true };
@@ -20,7 +23,7 @@ export async function listProducts(req, res, next) {
 
     const [products, total] = await Promise.all([
       Product.find(filter)
-        .populate("category", "name slug")
+        .populate("category", "name slug department")
         .sort(search ? { score: { $meta: "textScore" } } : { createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit),
@@ -43,7 +46,10 @@ export async function listProducts(req, res, next) {
 
 export async function getProduct(req, res, next) {
   try {
-    const product = await Product.findById(req.params.id).populate("category", "name slug");
+    const product = await Product.findById(req.params.id).populate(
+      "category",
+      "name slug department",
+    );
     if (!product || (!product.active && !req.admin)) {
       return res.status(404).json({ message: "Product not found." });
     }
@@ -61,23 +67,36 @@ function parseVariants(raw) {
   try {
     parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
   } catch {
-    throw Object.assign(new Error("Variants must be valid JSON."), { status: 400 });
+    throw Object.assign(new Error("Variants must be valid JSON."), {
+      status: 400,
+    });
   }
   if (!Array.isArray(parsed)) {
-    throw Object.assign(new Error("Variants must be an array."), { status: 400 });
+    throw Object.assign(new Error("Variants must be an array."), {
+      status: 400,
+    });
   }
   return parsed.map((v, i) => {
     const unit = String(v.unit || "").trim();
     const amount = Number(v.amount);
     const price = Number(v.price);
     if (!["g", "kg", "ml", "l", "pcs"].includes(unit)) {
-      throw Object.assign(new Error(`Variant ${i + 1}: unit must be g, kg, ml, l, or pcs.`), { status: 400 });
+      throw Object.assign(
+        new Error(`Variant ${i + 1}: unit must be g, kg, ml, l, or pcs.`),
+        { status: 400 },
+      );
     }
     if (!amount || amount <= 0) {
-      throw Object.assign(new Error(`Variant ${i + 1}: amount must be a positive number.`), { status: 400 });
+      throw Object.assign(
+        new Error(`Variant ${i + 1}: amount must be a positive number.`),
+        { status: 400 },
+      );
     }
     if (!price || price < 0) {
-      throw Object.assign(new Error(`Variant ${i + 1}: price must be a valid number.`), { status: 400 });
+      throw Object.assign(
+        new Error(`Variant ${i + 1}: price must be a valid number.`),
+        { status: 400 },
+      );
     }
     return { unit, amount, price };
   });
@@ -87,7 +106,9 @@ export async function createProduct(req, res, next) {
   try {
     const { name, price, category, description, barcode, active } = req.body;
     if (!name || !price || !category) {
-      return res.status(400).json({ message: "Name, price, and category are required." });
+      return res
+        .status(400)
+        .json({ message: "Name, price, and category are required." });
     }
 
     const variants = parseVariants(req.body.variants);
@@ -95,7 +116,9 @@ export async function createProduct(req, res, next) {
     let imageUrl = "";
     let imagePublicId = "";
     if (req.file) {
-      const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "products" });
+      const uploaded = await uploadImageBuffer(req.file.buffer, {
+        folder: "products",
+      });
       imageUrl = uploaded.url;
       imagePublicId = uploaded.publicId;
     }
@@ -107,7 +130,8 @@ export async function createProduct(req, res, next) {
       category,
       description,
       barcode,
-      active: active === undefined ? true : active === "true" || active === true,
+      active:
+        active === undefined ? true : active === "true" || active === true,
       imageUrl,
       imagePublicId,
     });
@@ -121,7 +145,8 @@ export async function createProduct(req, res, next) {
 export async function updateProduct(req, res, next) {
   try {
     const product = await Product.findById(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found." });
+    if (!product)
+      return res.status(404).json({ message: "Product not found." });
 
     const { name, price, category, description, barcode, active } = req.body;
     if (name !== undefined) product.name = name;
@@ -129,12 +154,16 @@ export async function updateProduct(req, res, next) {
     if (category !== undefined) product.category = category;
     if (description !== undefined) product.description = description;
     if (barcode !== undefined) product.barcode = barcode;
-    if (active !== undefined) product.active = active === "true" || active === true;
-    if (req.body.variants !== undefined) product.variants = parseVariants(req.body.variants);
+    if (active !== undefined)
+      product.active = active === "true" || active === true;
+    if (req.body.variants !== undefined)
+      product.variants = parseVariants(req.body.variants);
 
     if (req.file) {
       const oldPublicId = product.imagePublicId;
-      const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "products" });
+      const uploaded = await uploadImageBuffer(req.file.buffer, {
+        folder: "products",
+      });
       product.imageUrl = uploaded.url;
       product.imagePublicId = uploaded.publicId;
       if (oldPublicId) await deleteImage(oldPublicId);
@@ -150,9 +179,94 @@ export async function updateProduct(req, res, next) {
 export async function deleteProduct(req, res, next) {
   try {
     const product = await Product.findByIdAndDelete(req.params.id);
-    if (!product) return res.status(404).json({ message: "Product not found." });
+    if (!product)
+      return res.status(404).json({ message: "Product not found." });
     if (product.imagePublicId) await deleteImage(product.imagePublicId);
     res.json({ message: "Product deleted." });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function getHomepageProducts(req, res, next) {
+  try {
+    const departments = [
+      "grocery-kitchen",
+      "snacks-drinks",
+      "beauty-personal-care",
+      "household-essentials",
+    ];
+
+    const featured = await Product.find({ active: true })
+      .populate("category", "name slug department")
+      .sort({ createdAt: -1 })
+      .limit(6)
+      .lean();
+
+    const departmentProducts = {};
+
+    await Promise.all(
+      departments.map(async (department) => {
+        const products = await Product.aggregate([
+          {
+            $match: {
+              active: true,
+            },
+          },
+          {
+            $lookup: {
+              from: "categories",
+              localField: "category",
+              foreignField: "_id",
+              as: "categoryData",
+            },
+          },
+          {
+            $unwind: "$categoryData",
+          },
+          {
+            $match: {
+              "categoryData.department": department,
+              "categoryData.active": true,
+            },
+          },
+          {
+            $sort: {
+              createdAt: -1,
+            },
+          },
+          {
+            $limit: 6,
+          },
+          {
+            $project: {
+              name: 1,
+              barcode: 1,
+              price: 1,
+              variants: 1,
+              description: 1,
+              imageUrl: 1,
+              imagePublicId: 1,
+              active: 1,
+              createdAt: 1,
+              category: {
+                _id: "$categoryData._id",
+                name: "$categoryData.name",
+                slug: "$categoryData.slug",
+                department: "$categoryData.department",
+              },
+            },
+          },
+        ]);
+
+        departmentProducts[department] = products;
+      }),
+    );
+
+    res.json({
+      featured,
+      departments: departmentProducts,
+    });
   } catch (err) {
     next(err);
   }

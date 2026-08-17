@@ -5,7 +5,9 @@ import {
   createProduct,
   updateProduct,
   deleteProduct,
+  getHomepageProducts,
 } from "../controllers/productController.js";
+
 import { importProducts } from "../controllers/importController.js";
 import { requireAdmin } from "../middleware/auth.js";
 import { upload, csvUpload } from "../middleware/upload.js";
@@ -13,6 +15,7 @@ import { upload, csvUpload } from "../middleware/upload.js";
 const router = Router();
 
 router.get("/", listProducts);
+router.get("/homepage", getHomepageProducts);
 router.post("/import", requireAdmin, csvUpload.single("file"), importProducts);
 router.get("/:id", getProduct);
 router.post("/", requireAdmin, upload.single("image"), createProduct);

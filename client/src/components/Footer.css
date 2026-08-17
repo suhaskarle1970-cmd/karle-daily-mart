@@ -1,4 +1,5 @@
 .footer {
+  padding-top: 1rem;
   margin-top: 40px;
   background: var(--color-primary-dark-solid);
   color: rgba(255, 255, 255, 0.85);
@@ -33,8 +34,21 @@
   background: var(--color-accent);
 }
 
+.copyright-section {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
 .footer-bottom {
   text-align: center;
+  font-size: 12.5px;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 14px 20px;
+}
+
+.developer-info {
+   text-align: center;
   font-size: 12.5px;
   color: rgba(255, 255, 255, 0.55);
   padding: 14px 20px;
