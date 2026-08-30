@@ -19,6 +19,8 @@ import AdminProducts from "./pages/admin/AdminProducts";
 import AdminCategories from "./pages/admin/AdminCategories";
 import AdminSliders from "./pages/admin/AdminSliders";
 import AdminImport from "./pages/admin/AdminImport";
+import AdminSettings from "./pages/admin/AdminSettings";
+import ChangePassowrd from "./pages/admin/ChangePassword";
 
 export default function App() {
   return (
@@ -42,6 +44,11 @@ export default function App() {
               <Route path="/admin/categories" element={<AdminCategories />} />
               <Route path="/admin/sliders" element={<AdminSliders />} />
               <Route path="/admin/import" element={<AdminImport />} />
+              <Route path="/admin/settings" element={<AdminSettings />} />
+              <Route
+                path="/admin/change-password"
+                element={<ChangePassowrd />}
+              />
             </Route>
           </Route>
 

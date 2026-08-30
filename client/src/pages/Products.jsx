@@ -58,31 +58,6 @@ export default function Products() {
 
   return (
     <div className="container section">
-      <div className="products-toolbar">
-        <form onSubmit={handleSearchSubmit} className="products-search">
-          <input
-            type="search"
-            placeholder="Search products"
-            value={searchInput}
-            onChange={(e) => setSearchInput(e.target.value)}
-          />
-          <button type="submit" className="btn btn-outline">Search</button>
-        </form>
-
-        <select
-          value={category}
-          onChange={(e) => updateParams({ category: e.target.value })}
-          className="products-category-select"
-          aria-label="Filter by category"
-        >
-          <option value="">All categories</option>
-          {categories.map((c) => (
-            <option key={c._id} value={c._id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
 
       {status === "loading" && <LoadingGrid count={12} />}
 

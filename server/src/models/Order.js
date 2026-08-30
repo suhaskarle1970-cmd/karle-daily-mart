@@ -5,13 +5,45 @@ import mongoose from "mongoose";
 // tracking. Exists so the client has a record beyond WhatsApp chat history.
 const orderItemSchema = new mongoose.Schema(
   {
-    product: { type: mongoose.Schema.Types.ObjectId, ref: "Product" },
-    name: { type: String, required: true },
-    variant: { type: String, default: "" }, // e.g. "1 kg" — blank for single-size products
-    price: { type: Number, required: true },
-    quantity: { type: Number, required: true },
+    product: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Product",
+      required: true,
+    },
+
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+    },
+
+    // Example: Kolam Rice
+    type: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    // Example: 1 kg
+    variant: {
+      type: String,
+      default: "",
+      trim: true,
+    },
+
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    quantity: {
+      type: Number,
+      required: true,
+      min: 1,
+    },
   },
-  { _id: false }
+  { _id: false },
 );
 
 const orderSchema = new mongoose.Schema(
@@ -21,8 +53,18 @@ const orderSchema = new mongoose.Schema(
     address: { type: String, required: true },
     items: { type: [orderItemSchema], required: true },
     total: { type: Number, required: true },
+    subtotal: {
+      type: Number,
+      required: true,
+    },
+
+    deliveryCharge: {
+      type: Number,
+      required: true,
+      default: 0,
+    },
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 orderSchema.index({ createdAt: -1 });

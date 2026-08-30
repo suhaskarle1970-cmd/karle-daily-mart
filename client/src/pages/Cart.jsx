@@ -6,14 +6,21 @@ import "./Cart.css";
 
 export default function Cart() {
   const { items, updateQuantity, removeItem, totalAmount } = useCart();
+
   const navigate = useNavigate();
 
   if (items.length === 0) {
     return (
       <div className="container section">
-        <EmptyState title="Your cart is empty" description="Add a few essentials to get started." />
+        <EmptyState
+          title="Your cart is empty"
+          description="Add a few essentials to get started."
+        />
+
         <div style={{ textAlign: "center" }}>
-          <Link to="/products" className="btn btn-primary">Continue shopping</Link>
+          <Link to="/products" className="btn btn-primary">
+            Continue shopping
+          </Link>
         </div>
       </div>
     );
@@ -21,43 +28,158 @@ export default function Cart() {
 
   return (
     <div className="container section cart-page">
+      {/* =====================================================
+          TITLE
+      ===================================================== */}
+
       <h1 className="cart-title">Your cart</h1>
 
+      {/* =====================================================
+          CART ITEMS
+      ===================================================== */}
+
       <div className="cart-list">
-        {items.map((item) => (
-          <div key={item.lineKey} className="cart-row">
-            <div className="cart-row-image">
-              {item.imageUrl ? (
-                <img src={item.imageUrl} alt={item.name} />
-              ) : (
-                <div className="product-card-image-placeholder">No image</div>
-              )}
+        {items.map((item) => {
+
+          const itemPrice = Number(item.price || 0);
+          const itemMrp = Number(item.mrp || 0);
+
+          const hasDiscount = itemMrp > itemPrice && itemMrp > 0;
+
+          const discountPct = hasDiscount
+            ? Math.round(((itemMrp - itemPrice) / itemMrp) * 100)
+            : 0;
+
+          return (
+            <div key={item.lineKey} className="cart-row">
+              {/* =================================================
+                  IMAGE
+              ================================================= */}
+
+              <div className="cart-row-image">
+                {item.imageUrl ? (
+                  <img src={item.imageUrl} alt={item.name} />
+                ) : (
+                  <div className="product-card-image-placeholder">No image</div>
+                )}
+              </div>
+
+              {/* =================================================
+                  PRODUCT INFORMATION
+              ================================================= */}
+
+              <div className="cart-row-info">
+                <div className="cart-row-name">
+                  <div>{item.name}</div>
+
+                  {item.type && (
+                    <div className="cart-row-variant">Type: {item.type}</div>
+                  )}
+
+                  {item.variant && (
+                    <div className="cart-row-variant">Size: {item.variant}</div>
+                  )}
+                </div>
+
+                {/* PRICE */}
+
+                <div className="cart-row-price-wrapper">
+                  <span className="cart-row-price">
+                    {formatCurrency(itemPrice)}
+                  </span>
+
+                  {hasDiscount && (
+                    <>
+                      <span className="cart-row-mrp">
+                        {formatCurrency(itemMrp)}
+                      </span>
+
+                      <span className="cart-row-discount">
+                        {discountPct}% off
+                      </span>
+                    </>
+                  )}
+                </div>
+
+                <span className="cart-row-each">each</span>
+              </div>
+
+              {/* =================================================
+                  QUANTITY
+              ================================================= */}
+
+              <div className="pd-quantity-control cart-row-qty">
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuantity(item.lineKey, item.quantity - 1)
+                  }
+                  aria-label="Decrease quantity"
+                >
+                  −
+                </button>
+
+                <span>{item.quantity}</span>
+
+                <button
+                  type="button"
+                  onClick={() =>
+                    updateQuantity(item.lineKey, item.quantity + 1)
+                  }
+                  aria-label="Increase quantity"
+                >
+                  +
+                </button>
+              </div>
+
+              {/* =================================================
+                  SUBTOTAL
+              ================================================= */}
+
+              <p className="cart-row-subtotal">
+                {formatCurrency(itemPrice * item.quantity)}
+              </p>
+
+              {/* =================================================
+                  REMOVE
+              ================================================= */}
+
+              <button
+                type="button"
+                className="cart-row-remove"
+                onClick={() => removeItem(item.lineKey)}
+                aria-label={`Remove ${item.name}`}
+              >
+                ✕
+              </button>
             </div>
-            <div className="cart-row-info">
-              <p className="cart-row-name">{item.name}{item.variant && <span className="cart-row-variant"> · {item.variant}</span>}</p>
-              <p className="cart-row-price">{formatCurrency(item.price)} each</p>
-            </div>
-            <div className="pd-quantity-control cart-row-qty">
-              <button onClick={() => updateQuantity(item.lineKey, item.quantity - 1)} aria-label="Decrease quantity">−</button>
-              <span>{item.quantity}</span>
-              <button onClick={() => updateQuantity(item.lineKey, item.quantity + 1)} aria-label="Increase quantity">+</button>
-            </div>
-            <p className="cart-row-subtotal">{formatCurrency(item.price * item.quantity)}</p>
-            <button className="cart-row-remove" onClick={() => removeItem(item.lineKey)} aria-label={`Remove ${item.name}`}>
-              ✕
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
+
+      {/* =====================================================
+          SUMMARY
+      ===================================================== */}
 
       <div className="cart-summary">
         <div className="cart-summary-row">
           <span>Total</span>
-          <span className="cart-summary-total">{formatCurrency(totalAmount)}</span>
+
+          <span className="cart-summary-total">
+            {formatCurrency(totalAmount)}
+          </span>
         </div>
+
         <div className="cart-summary-actions">
-          <Link to="/products" className="btn btn-outline">Continue shopping</Link>
-          <button className="btn btn-primary" onClick={() => navigate("/checkout")}>
+          <Link to="/products" className="btn btn-outline">
+            Continue shopping
+          </Link>
+
+          <button
+            type="button"
+            className="btn btn-primary"
+            onClick={() => navigate("/checkout")}
+          >
             Proceed to order
           </button>
         </div>

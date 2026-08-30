@@ -2,7 +2,15 @@ import { Navigate, Outlet } from "react-router-dom";
 import { useAdminAuth } from "../context/AdminAuthContext";
 
 export default function ProtectedRoute() {
-  const { isAuthenticated } = useAdminAuth();
-  if (!isAuthenticated) return <Navigate to="/admin/login" replace />;
+  const { isAuthenticated, loading } = useAdminAuth();
+
+  if (loading) {
+    return null;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/admin/login" replace />;
+  }
+
   return <Outlet />;
 }

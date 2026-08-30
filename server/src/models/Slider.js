@@ -4,7 +4,7 @@ const sliderSchema = new mongoose.Schema(
   {
     imageUrl: { type: String, required: true },
     imagePublicId: { type: String, default: "" },
-    heading: { type: String, required: true, trim: true },
+    heading: { type: String, trim: true },
     description: { type: String, default: "" },
     ctaText: { type: String, default: "Shop Now" },
     ctaLink: { type: String, default: "/products" },

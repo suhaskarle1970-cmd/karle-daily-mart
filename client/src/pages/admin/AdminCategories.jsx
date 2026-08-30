@@ -82,81 +82,152 @@ export default function AdminCategories() {
     <div>
       <div className="admin-page-header">
         <h1>Categories</h1>
-        <button className="btn btn-primary" onClick={openCreate}>+ Add category</button>
+        <button className="btn btn-primary" onClick={openCreate}>
+          + Add category
+        </button>
       </div>
 
-      <p style={{ marginTop: -14, marginBottom: 18, fontSize: 13.5, color: "var(--color-text-muted)" }}>
-        Assign each category to a department (e.g. "Cooking Oil" → Grocery & Kitchen) so it appears in the right
-        homepage section. Categories with no department won't show on the homepage, but still work as a filter on
-        the Products page.
+      <p
+        style={{
+          marginTop: -14,
+          marginBottom: 18,
+          fontSize: 13.5,
+          color: "var(--color-text-muted)",
+        }}
+      >
+        Assign each category to a department (e.g. "Cooking Oil" → Grocery &
+        Kitchen) so it appears in the right homepage section. Categories with no
+        department won't show on the homepage, but still work as a filter on the
+        Products page.
       </p>
 
       <div className="admin-card">
         {status === "loading" && <p>Loading…</p>}
-        {status === "error" && <p className="field-error">Couldn't load categories.</p>}
+
+        {status === "error" && (
+          <p className="field-error">Couldn't load categories.</p>
+        )}
+
         {status === "ready" && (
-          <table className="admin-table">
-            <thead>
-              <tr>
-                <th>Name</th>
-                <th>Department</th>
-                <th>Status</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody>
-              {categories.map((c) => (
-                <tr key={c._id}>
-                  <td>{c.name}</td>
-                  <td>{c.department ? departmentLabel(c.department) : <span style={{ color: "var(--color-text-muted)" }}>Unassigned</span>}</td>
-                  <td>
-                    <span className={`badge ${c.active ? "badge-active" : "badge-inactive"}`}>
-                      {c.active ? "Active" : "Inactive"}
-                    </span>
-                  </td>
-                  <td>
-                    <button className="icon-btn" onClick={() => openEdit(c)}>Edit</button>
-                    <button className="icon-btn danger" onClick={() => handleDelete(c)}>Delete</button>
-                  </td>
-                </tr>
-              ))}
-              {categories.length === 0 && (
+          <div className="admin-table-scroll">
+            <table className="admin-table">
+              <thead>
                 <tr>
-                  <td colSpan={4}>No categories yet.</td>
+                  <th>Name</th>
+                  <th>Department</th>
+                  <th>Status</th>
+                  <th></th>
                 </tr>
-              )}
-            </tbody>
-          </table>
+              </thead>
+
+              <tbody>
+                {categories.map((c) => (
+                  <tr key={c._id}>
+                    <td>{c.name}</td>
+
+                    <td>
+                      {c.department ? (
+                        departmentLabel(c.department)
+                      ) : (
+                        <span style={{ color: "var(--color-text-muted)" }}>
+                          Unassigned
+                        </span>
+                      )}
+                    </td>
+
+                    <td>
+                      <span
+                        className={`badge ${
+                          c.active ? "badge-active" : "badge-inactive"
+                        }`}
+                      >
+                        {c.active ? "Active" : "Inactive"}
+                      </span>
+                    </td>
+
+                    <td>
+                      <button className="icon-btn" onClick={() => openEdit(c)}>
+                        Edit
+                      </button>
+
+                      <button
+                        className="icon-btn danger"
+                        onClick={() => handleDelete(c)}
+                      >
+                        Delete
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+
+                {categories.length === 0 && (
+                  <tr>
+                    <td colSpan={4}>No categories yet.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
 
       {modal && (
         <div className="modal-backdrop" onClick={() => setModal(null)}>
-          <form className="modal-card" onClick={(e) => e.stopPropagation()} onSubmit={handleSave}>
-            <h2>{modal.mode === "create" ? "Add category" : "Edit category"}</h2>
+          <form
+            className="modal-card"
+            onClick={(e) => e.stopPropagation()}
+            onSubmit={handleSave}
+          >
+            <h2>
+              {modal.mode === "create" ? "Add category" : "Edit category"}
+            </h2>
             <div className="form-grid">
               <label>
                 Name
-                <input value={name} onChange={(e) => setName(e.target.value)} required placeholder="e.g. Cooking Oil" />
+                <input
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  required
+                  placeholder="e.g. Cooking Oil"
+                />
               </label>
               <label>
                 Department
-                <select value={department} onChange={(e) => setDepartment(e.target.value)}>
+                <select
+                  value={department}
+                  onChange={(e) => setDepartment(e.target.value)}
+                >
                   <option value="">Unassigned</option>
                   {departments.map((d) => (
-                    <option key={d.id} value={d.id}>{d.label}</option>
+                    <option key={d.id} value={d.id}>
+                      {d.label}
+                    </option>
                   ))}
                 </select>
               </label>
               <label className="form-grid-check">
-                <input type="checkbox" checked={active} onChange={(e) => setActive(e.target.checked)} />
+                <input
+                  type="checkbox"
+                  checked={active}
+                  onChange={(e) => setActive(e.target.checked)}
+                />
                 Active
               </label>
               {error && <p className="field-error">{error}</p>}
             </div>
             <div className="modal-actions">
-              <button type="button" className="btn btn-outline" onClick={() => setModal(null)}>Cancel</button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>
+              <button
+                type="button"
+                className="btn btn-outline"
+                onClick={() => setModal(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="btn btn-primary"
+                disabled={saving}
+              >
                 {saving ? "Saving…" : "Save"}
               </button>
             </div>

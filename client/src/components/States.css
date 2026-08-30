@@ -1,6 +1,15 @@
+/* =========================================================
+   STATE BLOCK
+========================================================= */
+
 .state-block {
+  width: 100%;
+  box-sizing: border-box;
+
   text-align: center;
+
   padding: 60px 20px;
+
   color: var(--color-text);
 }
 
@@ -8,25 +17,64 @@
   color: var(--color-danger);
 }
 
+
+/* =========================================================
+   SKELETON CARD
+========================================================= */
+
 .skeleton-card {
+  width: 100%;
+  min-width: 0;
+
   background: var(--color-surface);
+
   border: 1px solid var(--color-border);
   border-radius: var(--radius-md);
+
   overflow: hidden;
+
   padding-bottom: 14px;
+
+  box-sizing: border-box;
 }
 
+
+/* =========================================================
+   SKELETON IMAGE
+========================================================= */
+
 .skeleton-img {
+  width: 100%;
+
   aspect-ratio: 1 / 1;
-  background: linear-gradient(90deg, #eee 25%, #f5f5f5 37%, #eee 63%);
+
+  background:
+    linear-gradient(
+      90deg,
+      #eee 25%,
+      #f5f5f5 37%,
+      #eee 63%
+    );
+
   background-size: 400% 100%;
+
   animation: shimmer 1.4s ease infinite;
 }
 
+
+/* =========================================================
+   SKELETON TEXT
+========================================================= */
+
 .skeleton-line {
+  width: calc(100% - 28px);
+
   height: 12px;
+
   margin: 12px 14px 0;
+
   border-radius: 4px;
+
   background: #ece7db;
 }
 
@@ -34,7 +82,146 @@
   width: 50%;
 }
 
+
+/* =========================================================
+   TABLET
+   ≤ 768px
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .state-block {
+    padding: 50px 18px;
+  }
+
+  .skeleton-card {
+    padding-bottom: 12px;
+  }
+
+  .skeleton-line {
+    width: calc(100% - 24px);
+
+    height: 11px;
+
+    margin: 10px 12px 0;
+  }
+
+  .skeleton-line.short {
+    width: 50%;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ≤ 640px
+========================================================= */
+
+@media (max-width: 640px) {
+
+  .state-block {
+    padding: 42px 16px;
+  }
+
+  .skeleton-card {
+    padding-bottom: 10px;
+  }
+
+  .skeleton-line {
+    width: calc(100% - 20px);
+
+    height: 10px;
+
+    margin: 9px 10px 0;
+  }
+
+  .skeleton-line.short {
+    width: 50%;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ≤ 480px
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .state-block {
+    padding: 36px 14px;
+  }
+
+  .skeleton-card {
+    padding-bottom: 9px;
+  }
+
+  .skeleton-line {
+    width: calc(100% - 18px);
+
+    height: 9px;
+
+    margin: 8px 9px 0;
+  }
+
+  .skeleton-line.short {
+    width: 50%;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ≤ 360px
+========================================================= */
+
+@media (max-width: 360px) {
+
+  .state-block {
+    padding: 30px 12px;
+  }
+
+  .skeleton-card {
+    padding-bottom: 8px;
+  }
+
+  .skeleton-line {
+    width: calc(100% - 16px);
+
+    height: 8px;
+
+    margin: 7px 8px 0;
+  }
+
+  .skeleton-line.short {
+    width: 50%;
+  }
+}
+
+
+/* =========================================================
+   REDUCED MOTION
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .skeleton-img {
+    animation: none;
+  }
+}
+
+
+/* =========================================================
+   SHIMMER
+========================================================= */
+
 @keyframes shimmer {
-  0% { background-position: 100% 0; }
-  100% { background-position: -100% 0; }
+
+  0% {
+    background-position: 100% 0;
+  }
+
+  100% {
+    background-position: -100% 0;
+  }
 }

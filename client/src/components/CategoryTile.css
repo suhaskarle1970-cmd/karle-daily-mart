@@ -1,24 +1,35 @@
+/* =========================================
+   CATEGORY TILES
+   ========================================= */
+
 .category-tile {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 8px;
-  flex-shrink: 0;
+  flex: 0 0 92px;
   width: 92px;
   text-align: center;
+  cursor: pointer;
 }
 
 .category-tile-image {
   width: 76px;
   height: 76px;
+  flex: 0 0 76px;
   border-radius: 50%;
   background: var(--color-surface);
   border: 1px solid var(--color-border);
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   overflow: hidden;
-  transition: border-color 0.15s ease, transform 0.15s ease;
+
+  transition:
+    border-color 0.15s ease,
+    transform 0.15s ease;
 }
 
 .category-tile:hover .category-tile-image {
@@ -27,6 +38,7 @@
 }
 
 .category-tile-image img {
+  display: block;
   width: 100%;
   height: 100%;
   object-fit: cover;
@@ -37,21 +49,177 @@
   font-size: 26px;
   font-weight: 600;
   color: var(--color-primary);
+  line-height: 1;
 }
 
 .category-tile-name {
+  width: 100%;
+  margin: 0;
+
   font-size: 12.5px;
   font-weight: 600;
   line-height: 1.3;
+
+  overflow-wrap: anywhere;
 }
+
+/* =========================================
+   DEPARTMENT SECTION
+   ========================================= */
 
 .department-section {
   margin-bottom: 8px;
 }
 
+/* =========================================
+   CATEGORY ROW
+   ========================================= */
+
 .category-tile-row {
   display: flex;
+  align-items: flex-start;
   gap: 16px;
+
+  width: 100%;
   overflow-x: auto;
+  overflow-y: hidden;
+
   padding-bottom: 6px;
+
+  /* Better touch scrolling on mobile */
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+
+  /* Prevent scrollbar from affecting layout */
+  scrollbar-width: thin;
+}
+
+/* Hide scrollbar on WebKit browsers */
+.category-tile-row::-webkit-scrollbar {
+  height: 4px;
+}
+
+.category-tile-row::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 999px;
+}
+
+.category-tile-row::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+
+/* =========================================
+   TABLET
+   481px – 768px
+   ========================================= */
+
+@media (max-width: 768px) {
+
+  .category-tile-row {
+    gap: 14px;
+    padding-bottom: 8px;
+  }
+
+  .category-tile {
+    flex-basis: 88px;
+    width: 88px;
+  }
+
+  .category-tile-image {
+    width: 72px;
+    height: 72px;
+    flex-basis: 72px;
+  }
+
+  .category-tile-initial {
+    font-size: 24px;
+  }
+
+  .category-tile-name {
+    font-size: 12px;
+  }
+}
+
+
+/* =========================================
+   MOBILE
+   320px – 480px
+   ========================================= */
+
+@media (max-width: 480px) {
+
+  .category-tile-row {
+    gap: 12px;
+    padding-bottom: 7px;
+
+    /* Small horizontal breathing room */
+    padding-left: 2px;
+    padding-right: 2px;
+  }
+
+  .category-tile {
+    flex-basis: 82px;
+    width: 82px;
+    gap: 7px;
+  }
+
+  .category-tile-image {
+    width: 68px;
+    height: 68px;
+    flex-basis: 68px;
+  }
+
+  .category-tile-initial {
+    font-size: 22px;
+  }
+
+  .category-tile-name {
+    font-size: 11.5px;
+    line-height: 1.25;
+  }
+}
+
+
+/* =========================================
+   SMALL PHONES
+   320px – 360px
+   ========================================= */
+
+@media (max-width: 360px) {
+
+  .category-tile-row {
+    gap: 10px;
+  }
+
+  .category-tile {
+    flex-basis: 78px;
+    width: 78px;
+  }
+
+  .category-tile-image {
+    width: 64px;
+    height: 64px;
+    flex-basis: 64px;
+  }
+
+  .category-tile-initial {
+    font-size: 21px;
+  }
+
+  .category-tile-name {
+    font-size: 11px;
+  }
+}
+
+
+/* =========================================
+   TOUCH DEVICES
+   ========================================= */
+
+@media (hover: none) {
+
+  .category-tile:hover .category-tile-image {
+    transform: none;
+  }
 }

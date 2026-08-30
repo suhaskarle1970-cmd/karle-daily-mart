@@ -130,7 +130,7 @@ export default function AdminSliders() {
             <div className="form-grid">
               <label>
                 Heading
-                <input value={form.heading} onChange={(e) => setForm({ ...form, heading: e.target.value })} required />
+                <input value={form.heading} onChange={(e) => setForm({ ...form, heading: e.target.value })} />
               </label>
               <label>
                 Description

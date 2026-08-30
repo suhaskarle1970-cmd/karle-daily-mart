@@ -10,8 +10,13 @@ cloudinary.config({
 const FOLDER = "karke-daily-mart";
 
 /**
- * Upload a buffer to Cloudinary with automatic format/quality and a sane
- * max size for product/slider images. Returns { url, publicId }.
+ * Upload product/slider image to Cloudinary.
+ *
+ * - Limits dimensions to 1200x1200
+ * - Automatically optimizes quality
+ * - Automatically selects modern image format (WebP/AVIF when supported)
+ * - Strips unnecessary metadata
+ * - Keeps aspect ratio
  */
 export function uploadImageBuffer(buffer, { folder = "products" } = {}) {
   return new Promise((resolve, reject) => {
@@ -19,27 +24,49 @@ export function uploadImageBuffer(buffer, { folder = "products" } = {}) {
       {
         folder: `${FOLDER}/${folder}`,
         resource_type: "image",
+
         transformation: [
-          { width: 1200, height: 1200, crop: "limit" },
-          { quality: "auto" },
-          { fetch_format: "auto" },
+          {
+            width: 1200,
+            height: 1200,
+            crop: "limit",
+          },
+          {
+            quality: "auto",
+          },
+          {
+            fetch_format: "auto",
+          },
         ],
       },
+
       (error, result) => {
-        if (error) return reject(error);
-        resolve({ url: result.secure_url, publicId: result.public_id });
-      }
+        if (error) {
+          return reject(error);
+        }
+
+        resolve({
+          url: result.secure_url,
+          publicId: result.public_id,
+        });
+      },
     );
+
     stream.end(buffer);
   });
 }
 
+/**
+ * Delete an image from Cloudinary.
+ */
 export async function deleteImage(publicId) {
   if (!publicId) return;
+
   try {
-    await cloudinary.uploader.destroy(publicId);
+    await cloudinary.uploader.destroy(publicId, {
+      resource_type: "image",
+    });
   } catch (err) {
-    // Don't let a failed cleanup block the main operation — log and move on.
     console.error(`[cloudinary] failed to delete ${publicId}:`, err.message);
   }
 }

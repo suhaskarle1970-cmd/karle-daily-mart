@@ -1,15 +1,29 @@
 import Order from "../models/Order.js";
 
-// Records an order at the moment the customer clicks "Place Order on
-// WhatsApp" — this is a log, not an order-management system. Best-effort:
-// if it fails, the customer's WhatsApp flow still proceeds on the frontend.
 export async function createOrder(req, res, next) {
   try {
-    const { customerName, mobile, address, items, total } = req.body;
+    const {
+      customerName,
+      mobile,
+      address,
+      items,
+      subtotal,
+      deliveryCharge,
+      total,
+    } = req.body;
+
     if (!customerName || !mobile || !address || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ message: "Missing required order fields." });
     }
-    const order = await Order.create({ customerName, mobile, address, items, total });
+    const order = await Order.create({
+      customerName,
+      mobile,
+      address,
+      items,
+      subtotal,
+      deliveryCharge,
+      total,
+    });
     res.status(201).json({ order });
   } catch (err) {
     next(err);

@@ -15,7 +15,7 @@ export async function listSliders(req, res, next) {
 export async function createSlider(req, res, next) {
   try {
     const { heading, description, ctaText, ctaLink, active, order } = req.body;
-    if (!heading) return res.status(400).json({ message: "Heading is required." });
+    // if (!heading) return res.status(400).json({ message: "Heading is required." });
     if (!req.file) return res.status(400).json({ message: "Banner image is required." });
 
     const uploaded = await uploadImageBuffer(req.file.buffer, { folder: "sliders" });

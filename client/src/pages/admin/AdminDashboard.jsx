@@ -24,7 +24,9 @@ export default function AdminDashboard() {
       </div>
 
       {status === "loading" && <p>Loading…</p>}
-      {status === "error" && <p className="field-error">Couldn't load dashboard stats.</p>}
+      {status === "error" && (
+        <p className="field-error">Couldn't load dashboard stats.</p>
+      )}
 
       {status === "ready" && stats && (
         <>
@@ -48,32 +50,46 @@ export default function AdminDashboard() {
           </div>
 
           <div className="admin-card">
-            <h3 style={{ marginBottom: 14, fontSize: 16 }}>Recently added products</h3>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                </tr>
-              </thead>
-              <tbody>
-                {stats.recentProducts.map((p) => (
-                  <tr key={p._id}>
-                    <td>{p.imageUrl ? <img className="thumb" src={p.imageUrl} alt="" /> : null}</td>
-                    <td>{p.name}</td>
-                    <td>{p.category?.name || "—"}</td>
-                    <td>{formatCurrency(p.price)}</td>
-                  </tr>
-                ))}
-                {stats.recentProducts.length === 0 && (
+            <h3 style={{ marginBottom: 14, fontSize: 16 }}>
+              Recently added products
+            </h3>
+
+            <div className="admin-table-scroll">
+              <table className="admin-table">
+                <thead>
                   <tr>
-                    <td colSpan={4}>No products yet.</td>
+                    <th></th>
+                    <th>Name</th>
+                    <th>Category</th>
+                    <th>Price</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
+                </thead>
+
+                <tbody>
+                  {stats.recentProducts.map((p) => (
+                    <tr key={p._id}>
+                      <td>
+                        {p.imageUrl ? (
+                          <img className="thumb" src={p.imageUrl} alt="" />
+                        ) : null}
+                      </td>
+
+                      <td>{p.name}</td>
+
+                      <td>{p.category?.name || "—"}</td>
+
+                      <td>{formatCurrency(p.price)}</td>
+                    </tr>
+                  ))}
+
+                  {stats.recentProducts.length === 0 && (
+                    <tr>
+                      <td colSpan={4}>No products yet.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
           </div>
         </>
       )}

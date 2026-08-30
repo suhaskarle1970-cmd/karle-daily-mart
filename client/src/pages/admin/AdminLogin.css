@@ -1,52 +1,376 @@
+/* =========================================================
+   ADMIN LOGIN PAGE
+========================================================= */
+
 .admin-login-page {
   min-height: 100vh;
+  min-height: 100dvh;
+
   display: flex;
   align-items: center;
   justify-content: center;
+
   background: var(--color-primary-dark-solid);
+
   padding: 20px;
+
+  box-sizing: border-box;
+
+  overflow-x: hidden;
 }
 
+
+/* =========================================================
+   LOGIN CARD
+========================================================= */
+
 .admin-login-card {
-  background: var(--color-surface);
-  border-radius: var(--radius-lg);
-  padding: 36px 32px;
   width: 100%;
   max-width: 380px;
+
+  box-sizing: border-box;
+
+  background: var(--color-surface);
+
+  border-radius: var(--radius-lg);
+
+  padding: 36px 32px;
+
   display: flex;
   flex-direction: column;
+
   gap: 16px;
+
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.25);
+
+  min-width: 0;
 }
 
 .admin-login-card h1 {
   font-size: 24px;
+
+  margin: 0;
+
+  line-height: 1.25;
 }
 
 .admin-login-sub {
   color: var(--color-text-muted);
+
   margin-top: -10px;
+
   font-size: 14px;
+
+  line-height: 1.4;
 }
+
+
+/* =========================================================
+   FORM LABELS
+========================================================= */
 
 .admin-login-card label {
   display: flex;
   flex-direction: column;
+
   gap: 6px;
+
+  width: 100%;
+  min-width: 0;
+
   font-size: 13px;
   font-weight: 600;
 }
 
+
+/* =========================================================
+   INPUT
+========================================================= */
+
 .admin-login-card input {
+  width: 100%;
+  min-width: 0;
+
+  box-sizing: border-box;
+
   padding: 11px 13px;
+
   border: 1.5px solid var(--color-border);
+
   border-radius: var(--radius-sm);
+
   font-size: 15px;
   font-weight: 400;
+
   font-family: var(--font-body);
+
+  outline: none;
+
+  transition:
+    border-color 0.15s ease,
+    box-shadow 0.15s ease;
 }
 
+.admin-login-card input:focus {
+  border-color: var(--color-primary);
+
+  box-shadow: 0 0 0 3px rgba(31, 107, 74, 0.1);
+}
+
+
+/* =========================================================
+   LOGIN BUTTON
+========================================================= */
+
 .admin-login-submit {
+  width: 100%;
+
   margin-top: 6px;
+
   padding: 13px;
+
+  box-sizing: border-box;
+}
+
+
+/* =========================================================
+   TABLET
+   ≤ 768px
+========================================================= */
+
+@media (max-width: 768px) {
+
+  .admin-login-page {
+    padding: 20px;
+  }
+
+  .admin-login-card {
+    max-width: 380px;
+
+    padding: 32px 28px;
+  }
+}
+
+
+/* =========================================================
+   MOBILE
+   ≤ 640px
+========================================================= */
+
+@media (max-width: 640px) {
+
+  .admin-login-page {
+    padding: 16px;
+  }
+
+  .admin-login-card {
+    width: 100%;
+    max-width: 380px;
+
+    padding: 28px 22px;
+
+    gap: 15px;
+  }
+
+  .admin-login-card h1 {
+    font-size: 22px;
+  }
+
+  .admin-login-sub {
+    font-size: 13px;
+  }
+
+  .admin-login-card input {
+    padding: 11px 12px;
+
+    font-size: 14px;
+  }
+
+  .admin-login-submit {
+    padding: 12px;
+  }
+}
+
+
+/* =========================================================
+   SMALL MOBILE
+   ≤ 480px
+========================================================= */
+
+@media (max-width: 480px) {
+
+  .admin-login-page {
+    padding: 12px;
+  }
+
+  .admin-login-card {
+    width: 100%;
+    max-width: none;
+
+    padding: 26px 18px;
+
+    border-radius: var(--radius-md);
+
+    gap: 14px;
+  }
+
+  .admin-login-card h1 {
+    font-size: 21px;
+  }
+
+  .admin-login-sub {
+    font-size: 12.5px;
+  }
+
+  .admin-login-card label {
+    font-size: 12.5px;
+  }
+
+  .admin-login-card input {
+    padding: 10px 11px;
+
+    font-size: 14px;
+  }
+
+  .admin-login-submit {
+    padding: 11px;
+  }
+}
+
+
+/* =========================================================
+   VERY SMALL PHONES
+   ≤ 360px
+========================================================= */
+
+@media (max-width: 360px) {
+
+  .admin-login-page {
+    padding: 10px;
+  }
+
+  .admin-login-card {
+    width: 100%;
+
+    padding: 22px 15px;
+
+    gap: 13px;
+  }
+
+  .admin-login-card h1 {
+    font-size: 20px;
+  }
+
+  .admin-login-sub {
+    font-size: 12px;
+  }
+
+  .admin-login-card label {
+    font-size: 12px;
+  }
+
+  .admin-login-card input {
+    padding: 10px;
+
+    font-size: 13.5px;
+  }
+
+  .admin-login-submit {
+    padding: 10px;
+  }
+}
+
+
+/* =========================================================
+   EXTRA SMALL PHONES
+   ≤ 320px
+========================================================= */
+
+@media (max-width: 320px) {
+
+  .admin-login-page {
+    padding: 8px;
+  }
+
+  .admin-login-card {
+    padding: 20px 13px;
+
+    border-radius: var(--radius-md);
+
+    gap: 12px;
+  }
+
+  .admin-login-card h1 {
+    font-size: 19px;
+  }
+
+  .admin-login-sub {
+    font-size: 11.5px;
+  }
+
+  .admin-login-card label {
+    font-size: 11.5px;
+  }
+
+  .admin-login-card input {
+    padding: 9px;
+
+    font-size: 13px;
+  }
+
+  .admin-login-submit {
+    padding: 10px;
+  }
+}
+
+
+/* =========================================================
+   SHORT SCREENS
+========================================================= */
+
+@media (max-height: 600px) {
+
+  .admin-login-page {
+    align-items: flex-start;
+
+    padding-top: 24px;
+    padding-bottom: 24px;
+
+    overflow-y: auto;
+  }
+
+  .admin-login-card {
+    padding-top: 24px;
+    padding-bottom: 24px;
+  }
+}
+
+
+/* =========================================================
+   VERY SHORT + SMALL SCREEN
+========================================================= */
+
+@media (max-width: 480px) and (max-height: 600px) {
+
+  .admin-login-page {
+    padding-top: 16px;
+    padding-bottom: 16px;
+  }
+
+  .admin-login-card {
+    padding-top: 20px;
+    padding-bottom: 20px;
+  }
+}
+
+
+/* =========================================================
+   ACCESSIBILITY
+========================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .admin-login-card input {
+    transition: none;
+  }
 }

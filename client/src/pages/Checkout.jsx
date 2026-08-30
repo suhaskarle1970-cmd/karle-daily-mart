@@ -12,6 +12,25 @@ export default function Checkout() {
   const { config } = useStoreConfig();
   const navigate = useNavigate();
 
+  const subtotal = totalAmount;
+
+  const deliverySettings = config.delivery || {};
+
+  const minimumOrderAmount = Number(deliverySettings.minimumOrderAmount ?? 500);
+
+  const chargePerAmount = Number(deliverySettings.chargePerAmount ?? 500);
+
+  const chargePerAmountValue = Number(
+    deliverySettings.chargePerAmountValue ?? 20,
+  );
+
+  const deliveryCharge =
+    deliverySettings.enabled !== false && subtotal >= minimumOrderAmount
+      ? Math.floor(subtotal / chargePerAmount) * chargePerAmountValue
+      : 0;
+
+  const finalTotal = subtotal + deliveryCharge;
+
   const [form, setForm] = useState({ customerName: "", mobile: "", address: "" });
   const [errors, setErrors] = useState({});
 
@@ -47,8 +66,20 @@ export default function Checkout() {
       customerName: form.customerName.trim(),
       mobile: form.mobile.trim(),
       address: form.address.trim(),
-      items: items.map((i) => ({ product: i.productId, name: i.name, variant: i.variant || "", price: i.price, quantity: i.quantity })),
-      total: totalAmount,
+
+      items: items.map((i) => ({
+        product: i.productId,
+        name: i.name,
+        type: i.type || "",
+        variant: i.variant || "",
+        price: Number(i.price),
+        quantity: Number(i.quantity),
+        subtotal: Number(i.price) * Number(i.quantity),
+      })),
+
+      subtotal,
+      deliveryCharge,
+      total: finalTotal,
     };
 
     // Best-effort order log — the WhatsApp flow proceeds regardless of this succeeding.
@@ -60,7 +91,9 @@ export default function Checkout() {
       mobile: orderPayload.mobile,
       address: orderPayload.address,
       items,
-      total: totalAmount,
+      subtotal,
+      deliveryCharge,
+      total: finalTotal,
     });
 
     const link = buildWhatsAppLink(config.whatsappNumber, message);
@@ -80,10 +113,14 @@ export default function Checkout() {
             <input
               type="text"
               value={form.customerName}
-              onChange={(e) => setForm({ ...form, customerName: e.target.value })}
+              onChange={(e) =>
+                setForm({ ...form, customerName: e.target.value })
+              }
               placeholder="Your full name"
             />
-            {errors.customerName && <span className="field-error">{errors.customerName}</span>}
+            {errors.customerName && (
+              <span className="field-error">{errors.customerName}</span>
+            )}
           </label>
 
           <label>
@@ -94,7 +131,9 @@ export default function Checkout() {
               onChange={(e) => setForm({ ...form, mobile: e.target.value })}
               placeholder="10-digit mobile number"
             />
-            {errors.mobile && <span className="field-error">{errors.mobile}</span>}
+            {errors.mobile && (
+              <span className="field-error">{errors.mobile}</span>
+            )}
           </label>
 
           <label>
@@ -105,7 +144,9 @@ export default function Checkout() {
               onChange={(e) => setForm({ ...form, address: e.target.value })}
               placeholder="House/flat no., street, area, landmark"
             />
-            {errors.address && <span className="field-error">{errors.address}</span>}
+            {errors.address && (
+              <span className="field-error">{errors.address}</span>
+            )}
           </label>
 
           {errors.form && <p className="field-error">{errors.form}</p>}
@@ -117,17 +158,51 @@ export default function Checkout() {
 
         <aside className="checkout-summary">
           <h3>Order summary</h3>
+
           <div className="checkout-summary-list">
             {items.map((i) => (
               <div key={i.lineKey} className="checkout-summary-row">
-                <span>{i.name}{i.variant && ` (${i.variant})`} × {i.quantity}</span>
+                <span>
+                  {i.name}
+
+                  {i.type && (
+                    <>
+                      <br />
+                      <small>Type: {i.type}</small>
+                    </>
+                  )}
+
+                  {i.variant && (
+                    <>
+                      <br />
+                      <small>Size: {i.variant}</small>
+                    </>
+                  )}
+
+                  {" × "}
+                  {i.quantity}
+                </span>
+
                 <span>{formatCurrency(i.price * i.quantity)}</span>
               </div>
             ))}
           </div>
+
+          <div className="checkout-summary-row">
+            <span>Subtotal</span>
+            <span>{formatCurrency(subtotal)}</span>
+          </div>
+
+          <div className="checkout-summary-row">
+            <span>Delivery charges</span>
+            <span>
+              {deliveryCharge === 0 ? "Free" : formatCurrency(deliveryCharge)}
+            </span>
+          </div>
+
           <div className="checkout-summary-total">
             <span>Total</span>
-            <span>{formatCurrency(totalAmount)}</span>
+            <span>{formatCurrency(finalTotal)}</span>
           </div>
         </aside>
       </div>
