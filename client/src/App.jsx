@@ -1,4 +1,5 @@
 import { Routes, Route } from "react-router-dom";
+
 import { CartProvider } from "./context/CartContext";
 import { AdminAuthProvider } from "./context/AdminAuthContext";
 
@@ -20,13 +21,17 @@ import AdminCategories from "./pages/admin/AdminCategories";
 import AdminSliders from "./pages/admin/AdminSliders";
 import AdminImport from "./pages/admin/AdminImport";
 import AdminSettings from "./pages/admin/AdminSettings";
-import ChangePassowrd from "./pages/admin/ChangePassword";
+import ChangePassword from "./pages/admin/ChangePassword";
 
 export default function App() {
   return (
     <AdminAuthProvider>
       <CartProvider>
         <Routes>
+          {/* =====================================================
+              CUSTOMER ROUTES
+          ===================================================== */}
+
           <Route element={<CustomerLayout />}>
             <Route path="/" element={<Home />} />
             <Route path="/products" element={<Products />} />
@@ -35,22 +40,40 @@ export default function App() {
             <Route path="/checkout" element={<Checkout />} />
           </Route>
 
+          {/* =====================================================
+              ADMIN LOGIN
+          ===================================================== */}
+
           <Route path="/admin/login" element={<AdminLogin />} />
+
+          {/* =====================================================
+              PROTECTED ADMIN ROUTES
+          ===================================================== */}
 
           <Route element={<ProtectedRoute />}>
             <Route element={<AdminLayout />}>
               <Route path="/admin" element={<AdminDashboard />} />
+
               <Route path="/admin/products" element={<AdminProducts />} />
+
               <Route path="/admin/categories" element={<AdminCategories />} />
+
               <Route path="/admin/sliders" element={<AdminSliders />} />
+
               <Route path="/admin/import" element={<AdminImport />} />
+
               <Route path="/admin/settings" element={<AdminSettings />} />
+
               <Route
                 path="/admin/change-password"
-                element={<ChangePassowrd />}
+                element={<ChangePassword />}
               />
             </Route>
           </Route>
+
+          {/* =====================================================
+              FALLBACK
+          ===================================================== */}
 
           <Route path="*" element={<NotFound />} />
         </Routes>

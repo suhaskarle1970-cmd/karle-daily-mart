@@ -1,50 +1,87 @@
-import { useEffect, useRef, useState, useCallback } from "react";
+import {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link } from "react-router-dom";
 import "./HeroSlider.css";
 
 const AUTOPLAY_MS = 4000;
 const TRANSITION_MS = 900;
 const CONTROLS_HIDE_MS = 3000;
+const SWIPE_THRESHOLD = 40;
+
+const DEFAULT_ALT = "Daily Mart Super Market";
+
+/* ============================================================
+   IMAGE HELPERS
+============================================================ */
+
+function getOptimizedImageUrl(url, width = 1200) {
+  if (!url || !url.includes("res.cloudinary.com")) {
+    return url;
+  }
+
+  return url.replace(
+    "/upload/",
+    `/upload/f_auto,q_auto,w_${width},c_limit/`,
+  );
+}
+
+/* ============================================================
+   HERO SLIDER
+============================================================ */
 
 export default function HeroSlider({ slides }) {
   const [index, setIndex] = useState(0);
   const [paused, setPaused] = useState(false);
   const [failed, setFailed] = useState({});
-  const [showControls, setShowControls] = useState(true);
+  const [showControls, setShowControls] =
+    useState(true);
 
   const touchStartX = useRef(null);
   const controlsTimer = useRef(null);
 
   const count = slides?.length || 0;
 
+  /* ==========================================================
+     NAVIGATION
+  ========================================================== */
+
   const goTo = useCallback(
-    (i) => {
+    (targetIndex) => {
       if (!count) return;
-      setIndex(((i % count) + count) % count);
+
+      setIndex(
+        ((targetIndex % count) + count) %
+          count,
+      );
     },
     [count],
   );
 
   const next = useCallback(() => {
-    goTo(index + 1);
-  }, [goTo, index]);
+    setIndex((currentIndex) => {
+      if (!count) return 0;
+
+      return (currentIndex + 1) % count;
+    });
+  }, [count]);
 
   const prev = useCallback(() => {
-    goTo(index - 1);
-  }, [goTo, index]);
+    setIndex((currentIndex) => {
+      if (!count) return 0;
 
+      return (
+        (currentIndex - 1 + count) % count
+      );
+    });
+  }, [count]);
 
-  function getOptimizedImageUrl(url, width = 1200) {
-    if (!url || !url.includes("res.cloudinary.com")) {
-      return url;
-    }
-
-    return url.replace("/upload/", `/upload/f_auto,q_auto,w_${width},c_limit/`);
-  }
-
-  /* =========================================================
-     SHOW CONTROLS + START HIDE TIMER
-  ========================================================= */
+  /* ==========================================================
+     CONTROLS TIMER
+  ========================================================== */
 
   const resetControlsTimer = useCallback(() => {
     setShowControls(true);
@@ -58,73 +95,138 @@ export default function HeroSlider({ slides }) {
     }, CONTROLS_HIDE_MS);
   }, []);
 
-  /* =========================================================
-     CLEANUP CONTROL TIMER
-  ========================================================= */
+  /* ==========================================================
+     TIMER CLEANUP
+  ========================================================== */
 
   useEffect(() => {
     return () => {
       if (controlsTimer.current) {
-        clearTimeout(controlsTimer.current);
+        clearTimeout(
+          controlsTimer.current,
+        );
       }
     };
   }, []);
 
-  /* =========================================================
-     AUTOPLAY
-  ========================================================= */
+  /* ==========================================================
+     KEEP INDEX VALID
+  ========================================================== */
 
   useEffect(() => {
-    if (count < 2 || paused) return;
+    if (!count) {
+      setIndex(0);
+      return;
+    }
+
+    setIndex((currentIndex) =>
+      currentIndex >= count
+        ? 0
+        : currentIndex,
+    );
+  }, [count]);
+
+  /* ==========================================================
+     AUTOPLAY
+  ========================================================== */
+
+  useEffect(() => {
+    if (count < 2 || paused) {
+      return;
+    }
 
     const timer = setInterval(() => {
-      setIndex((i) => (i + 1) % count);
+      setIndex((currentIndex) =>
+        (currentIndex + 1) % count,
+      );
     }, AUTOPLAY_MS);
 
     return () => clearInterval(timer);
   }, [count, paused]);
 
-
-  /* =========================================================
+  /* ==========================================================
      KEYBOARD
-  ========================================================= */
+  ========================================================== */
 
-  const onKeyDown = (e) => {
-    resetControlsTimer();
+  const onKeyDown = useCallback(
+    (event) => {
+      resetControlsTimer();
 
-    if (e.key === "ArrowRight") {
-      next();
-    }
+      if (event.key === "ArrowRight") {
+        next();
+      } else if (event.key === "ArrowLeft") {
+        prev();
+      }
+    },
+    [
+      next,
+      prev,
+      resetControlsTimer,
+    ],
+  );
 
-    if (e.key === "ArrowLeft") {
-      prev();
-    }
-  };
-
-  /* =========================================================
+  /* ==========================================================
      TOUCH
-  ========================================================= */
+  ========================================================== */
 
-  const onTouchStart = (e) => {
-    resetControlsTimer();
-    touchStartX.current = e.touches[0].clientX;
-  };
+  const onTouchStart = useCallback(
+    (event) => {
+      resetControlsTimer();
 
-  const onTouchEnd = (e) => {
-    resetControlsTimer();
+      touchStartX.current =
+        event.touches[0]?.clientX ?? null;
+    },
+    [resetControlsTimer],
+  );
 
-    if (touchStartX.current == null) return;
+  const onTouchEnd = useCallback(
+    (event) => {
+      resetControlsTimer();
 
-    const delta = e.changedTouches[0].clientX - touchStartX.current;
+      if (
+        touchStartX.current === null
+      ) {
+        return;
+      }
 
-    if (Math.abs(delta) > 40) {
-      delta < 0 ? next() : prev();
-    }
+      const endX =
+        event.changedTouches[0]?.clientX;
 
-    touchStartX.current = null;
-  };
+      if (endX === undefined) {
+        touchStartX.current = null;
+        return;
+      }
 
-  if (!count) return null;
+      const delta =
+        endX - touchStartX.current;
+
+      if (
+        Math.abs(delta) >
+        SWIPE_THRESHOLD
+      ) {
+        if (delta < 0) {
+          next();
+        } else {
+          prev();
+        }
+      }
+
+      touchStartX.current = null;
+    },
+    [
+      next,
+      prev,
+      resetControlsTimer,
+    ],
+  );
+
+  /* ==========================================================
+     NO SLIDES
+  ========================================================== */
+
+  if (!count) {
+    return null;
+  }
 
   return (
     <section
@@ -142,7 +244,9 @@ export default function HeroSlider({ slides }) {
         setPaused(false);
 
         if (controlsTimer.current) {
-          clearTimeout(controlsTimer.current);
+          clearTimeout(
+            controlsTimer.current,
+          );
         }
 
         setShowControls(false);
@@ -160,33 +264,58 @@ export default function HeroSlider({ slides }) {
         "--hero-transition": `${TRANSITION_MS}ms`,
       }}
     >
-      <div className="hero-slider-track">
-        {slides.map((slide, i) => {
-          const active = i === index;
+      {/* ======================================================
+          SLIDES
+      ====================================================== */}
 
-          const showFallback = !slide.imageUrl || failed[slide._id];
+      <div className="hero-slider-track">
+        {slides.map((slide, slideIndex) => {
+          const active =
+            slideIndex === index;
+
+          const showFallback =
+            !slide.imageUrl ||
+            failed[slide._id];
 
           const hasContent = Boolean(
-            slide.heading || slide.description || slide.ctaText,
+            slide.heading ||
+              slide.description ||
+              slide.ctaText,
           );
 
           return (
             <div
               key={slide._id}
-              className={`hero-layer ${active ? "is-active" : ""}`}
+              className={`hero-layer ${
+                active ? "is-active" : ""
+              }`}
               aria-hidden={!active}
             >
-              {/* LEFT COLUMN */}
+              {/* ==================================================
+                  LEFT COLUMN
+              ================================================== */}
+
               <div className="hero-text-col">
                 {hasContent && (
                   <div className="hero-content-inner">
-                    {slide.heading && <h1>{slide.heading}</h1>}
+                    {slide.heading && (
+                      <h1>
+                        {slide.heading}
+                      </h1>
+                    )}
 
-                    {slide.description && <p>{slide.description}</p>}
+                    {slide.description && (
+                      <p>
+                        {slide.description}
+                      </p>
+                    )}
 
                     {slide.ctaText && (
                       <Link
-                        to={slide.ctaLink || "/products"}
+                        to={
+                          slide.ctaLink ||
+                          "/products"
+                        }
                         className="btn btn-accent hero-cta"
                       >
                         {slide.ctaText}
@@ -196,31 +325,49 @@ export default function HeroSlider({ slides }) {
                 )}
               </div>
 
-              {/* RIGHT COLUMN */}
+              {/* ==================================================
+                  RIGHT COLUMN
+              ================================================== */}
+
               <div className="hero-image-col">
                 {showFallback ? (
-                  <div className="hero-image-fallback" aria-hidden="true" />
+                  <div
+                    className="hero-image-fallback"
+                    aria-hidden="true"
+                  />
                 ) : (
                   <img
                     className="hero-image"
-                    src={getOptimizedImageUrl(slide.imageUrl, 1200)}
-                    alt={slide.heading || "Daily Mart Super Market"}
+                    src={getOptimizedImageUrl(
+                      slide.imageUrl,
+                      1200,
+                    )}
+                    alt={
+                      slide.heading ||
+                      DEFAULT_ALT
+                    }
                     decoding="async"
                     style={
                       slide.focalPoint
                         ? {
-                            objectPosition: slide.focalPoint,
+                            objectPosition:
+                              slide.focalPoint,
                           }
                         : undefined
                     }
-                    loading={i === 0 ? "eager" : "lazy"}
-                    // fetchPriority={i === 0 ? "high" : "auto"}
-                    onError={() =>
-                      setFailed((f) => ({
-                        ...f,
-                        [slide._id]: true,
-                      }))
+                    loading={
+                      slideIndex === 0
+                        ? "eager"
+                        : "lazy"
                     }
+                    onError={() => {
+                      setFailed(
+                        (current) => ({
+                          ...current,
+                          [slide._id]: true,
+                        }),
+                      );
+                    }}
                   />
                 )}
               </div>
@@ -229,15 +376,29 @@ export default function HeroSlider({ slides }) {
         })}
       </div>
 
-      <div className="hero-torn-edge" aria-hidden="true" />
+      {/* ========================================================
+          TORN EDGE
+      ======================================================== */}
+
+      <div
+        className="hero-torn-edge"
+        aria-hidden="true"
+      />
+
+      {/* ========================================================
+          CONTROLS
+      ======================================================== */}
 
       {count > 1 && (
         <>
           {/* PREVIOUS */}
+
           <button
             type="button"
             className={`hero-arrow hero-arrow-prev ${
-              showControls ? "controls-visible" : "controls-hidden"
+              showControls
+                ? "controls-visible"
+                : "controls-hidden"
             }`}
             onClick={() => {
               prev();
@@ -249,10 +410,13 @@ export default function HeroSlider({ slides }) {
           </button>
 
           {/* NEXT */}
+
           <button
             type="button"
             className={`hero-arrow hero-arrow-next ${
-              showControls ? "controls-visible" : "controls-hidden"
+              showControls
+                ? "controls-visible"
+                : "controls-hidden"
             }`}
             onClick={() => {
               next();
@@ -264,24 +428,39 @@ export default function HeroSlider({ slides }) {
           </button>
 
           {/* DOTS */}
+
           <div
             className={`hero-dots ${
-              showControls ? "controls-visible" : "controls-hidden"
+              showControls
+                ? "controls-visible"
+                : "controls-hidden"
             }`}
           >
-            {slides.map((s, i) => (
-              <button
-                key={s._id}
-                type="button"
-                className={`hero-dot ${i === index ? "active" : ""}`}
-                onClick={() => {
-                  goTo(i);
-                  resetControlsTimer();
-                }}
-                aria-label={`Go to slide ${i + 1}`}
-                aria-current={i === index ? "true" : undefined}
-              />
-            ))}
+            {slides.map(
+              (slide, slideIndex) => (
+                <button
+                  key={slide._id}
+                  type="button"
+                  className={`hero-dot ${
+                    slideIndex === index
+                      ? "active"
+                      : ""
+                  }`}
+                  onClick={() => {
+                    goTo(slideIndex);
+                    resetControlsTimer();
+                  }}
+                  aria-label={`Go to slide ${
+                    slideIndex + 1
+                  }`}
+                  aria-current={
+                    slideIndex === index
+                      ? "true"
+                      : undefined
+                  }
+                />
+              ),
+            )}
           </div>
         </>
       )}

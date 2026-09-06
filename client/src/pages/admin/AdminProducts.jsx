@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import api from "../../services/api";
 import { formatCurrency } from "../../utils/format";
 import "./admin.css";
@@ -15,13 +15,20 @@ const EMPTY_FORM = {
 
 const UNITS = ["g", "kg", "ml", "l", "pcs"];
 
+const DEFAULT_SIZE = {
+  unit: "kg",
+  amount: "",
+  price: "",
+  mrp: "",
+};
+
+const DEFAULT_TYPE = {
+  name: "",
+  sizes: [DEFAULT_SIZE],
+};
+
 function createEmptySize() {
-  return {
-    unit: "kg",
-    amount: "",
-    price: "",
-    mrp: "",
-  };
+  return { ...DEFAULT_SIZE };
 }
 
 function createEmptyType() {
@@ -32,63 +39,79 @@ function createEmptyType() {
 }
 
 /* =========================================================
-   STANDARD VARIANT EDITOR
+   HELPERS
+========================================================= */
+
+function isValidNonNegativeNumber(value) {
+  if (value === "" || value === null || value === undefined) {
+    return false;
+  }
+
+  const number = Number(value);
+
+  return Number.isFinite(number) && number >= 0;
+}
+
+function normalizeOptionalNumber(value) {
+  if (value === "" || value === null || value === undefined) {
+    return null;
+  }
+
+  return Number(value);
+}
+
+/* =========================================================
+   VARIANT EDITOR
 ========================================================= */
 
 function VariantEditor({ variants, onChange }) {
-  function updateRow(index, field, value) {
-    const next = variants.map((variant, i) =>
-      i === index
-        ? {
-            ...variant,
-            [field]: value,
-          }
-        : variant,
-    );
+  const updateRow = useCallback(
+    (index, field, value) => {
+      onChange(
+        variants.map((variant, rowIndex) =>
+          rowIndex === index
+            ? {
+                ...variant,
+                [field]: value,
+              }
+            : variant,
+        ),
+      );
+    },
+    [variants, onChange],
+  );
 
-    onChange(next);
-  }
-
-  function addRow() {
+  const addRow = useCallback(() => {
     onChange([
       ...variants,
-      {
-        unit: "kg",
-        amount: "",
-        price: "",
-        mrp: "",
-      },
+      createEmptySize(),
     ]);
-  }
+  }, [variants, onChange]);
 
-  function removeRow(index) {
-    onChange(variants.filter((_, i) => i !== index));
-  }
+  const removeRow = useCallback(
+    (index) => {
+      onChange(
+        variants.filter(
+          (_, rowIndex) => rowIndex !== index,
+        ),
+      );
+    },
+    [variants, onChange],
+  );
 
   return (
-    <div>
+    <div className="variant-editor">
       {variants.length === 0 && (
-        <p
-          style={{
-            fontSize: 12.5,
-            color: "var(--color-text-muted)",
-            marginBottom: 8,
-          }}
-        >
-          No sizes added — product will use the standard price above.
+        <p className="form-help">
+          No sizes added — product will use the standard
+          price above.
         </p>
       )}
 
       {variants.map((variant, index) => (
         <div
-          key={index}
-          style={{
-            display: "flex",
-            gap: 6,
-            marginBottom: 8,
-            alignItems: "center",
-            flexWrap: "wrap",
-          }}
+          className="variant-row"
+          key={`variant-${index}`}
         >
           <input
             type="number"
@@ -96,23 +119,24 @@ function VariantEditor({ variants, onChange }) {
             step="any"
             placeholder="Amount"
             value={variant.amount}
-            onChange={(e) => updateRow(index, "amount", e.target.value)}
-            style={{
-              width: 80,
-              padding: "8px 10px",
-              border: "1.5px solid var(--color-border)",
-              borderRadius: 6,
-            }}
+            onChange={(e) =>
+              updateRow(
+                index,
+                "amount",
+                e.target.value,
+              )
+            }
           />
 
           <select
             value={variant.unit}
-            onChange={(e) => updateRow(index, "unit", e.target.value)}
-            style={{
-              padding: "8px 10px",
-              border: "1.5px solid var(--color-border)",
-              borderRadius: 6,
-            }}
+            onChange={(e) =>
+              updateRow(
+                index,
+                "unit",
+                e.target.value,
+              )
+            }
           >
             {UNITS.map((unit) => (
               <option key={unit} value={unit}>
@@ -127,13 +151,13 @@ function VariantEditor({ variants, onChange }) {
             step="0.01"
             placeholder="Price ₹"
             value={variant.price}
-            onChange={(e) => updateRow(index, "price", e.target.value)}
-            style={{
-              width: 90,
-              padding: "8px 10px",
-              border: "1.5px solid var(--color-border)",
-              borderRadius: 6,
-            }}
+            onChange={(e) =>
+              updateRow(
+                index,
+                "price",
+                e.target.value,
+              )
+            }
           />
 
           <input
@@ -142,13 +166,13 @@ function VariantEditor({ variants, onChange }) {
             step="0.01"
             placeholder="MRP ₹"
             value={variant.mrp ?? ""}
-            onChange={(e) => updateRow(index, "mrp", e.target.value)}
-            style={{
-              width: 90,
-              padding: "8px 10px",
-              border: "1.5px solid var(--color-border)",
-              borderRadius: 6,
-            }}
+            onChange={(e) =>
+              updateRow(
+                index,
+                "mrp",
+                e.target.value,
+              )
+            }
           />
 
           <button
@@ -165,10 +189,6 @@ function VariantEditor({ variants, onChange }) {
         type="button"
         className="btn btn-outline"
         onClick={addRow}
-        style={{
-          padding: "6px 14px",
-          fontSize: 13,
-        }}
       >
         + Add size
       </button>
@@ -187,6 +207,7 @@ export default function AdminProducts() {
   const [pagination, setPagination] = useState(null);
   const [page, setPage] = useState(1);
 
+  const [searchInput, setSearchInput] = useState("");
   const [search, setSearch] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("");
 
@@ -198,21 +219,22 @@ export default function AdminProducts() {
 
   const [variants, setVariants] = useState([]);
 
-  const [pricingType, setPricingType] = useState("standard");
+  const [pricingType, setPricingType] =
+    useState("standard");
 
-  const [types, setTypes] = useState([createEmptyType()]);
+  const [types, setTypes] = useState([
+    createEmptyType(),
+  ]);
 
   const [imageFile, setImageFile] = useState(null);
-
   const [imagePreview, setImagePreview] = useState("");
 
   const [error, setError] = useState("");
-
   const [saving, setSaving] = useState(false);
 
   /* =========================================================
-   CAMERA
-========================================================= */
+     CAMERA STATE
+  ========================================================= */
 
   const [cameraOpen, setCameraOpen] = useState(false);
   const [cameraError, setCameraError] = useState("");
@@ -220,55 +242,158 @@ export default function AdminProducts() {
   const cameraVideoRef = useRef(null);
   const cameraStreamRef = useRef(null);
 
+  const fileInputRef = useRef(null);
+
   /* =========================================================
      LOAD CATEGORIES
   ========================================================= */
 
   useEffect(() => {
-    api
-      .get("/categories", {
-        params: {
-          includeInactive: true,
-        },
-      })
-      .then(({ data }) => {
-        setCategories(data.categories || []);
-      })
-      .catch(() => {
-        setCategories([]);
-      });
+    let mounted = true;
+
+    async function loadCategories() {
+      try {
+        const { data } = await api.get(
+          "/categories",
+          {
+            params: {
+              includeInactive: true,
+            },
+          },
+        );
+
+        if (mounted) {
+          setCategories(data.categories || []);
+        }
+      } catch {
+        if (mounted) {
+          setCategories([]);
+        }
+      }
+    }
+
+    loadCategories();
+
+    return () => {
+      mounted = false;
+    };
   }, []);
+
+  /* =========================================================
+     SEARCH DEBOUNCE
+  ========================================================= */
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => {
+      setPage(1);
+      setSearch(searchInput.trim());
+    }, 350);
+
+    return () => {
+      window.clearTimeout(timer);
+    };
+  }, [searchInput]);
 
   /* =========================================================
      LOAD PRODUCTS
   ========================================================= */
 
-  useEffect(() => {
-    loadProducts();
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, search, categoryFilter]);
-
-  async function loadProducts() {
+  const loadProducts = useCallback(async () => {
     setStatus("loading");
 
     try {
-      const { data } = await api.get("/products", {
-        params: {
-          page,
-          limit: 20,
-          includeInactive: true,
-          search: search || undefined,
-          category: categoryFilter || undefined,
+      const { data } = await api.get(
+        "/products",
+        {
+          params: {
+            page,
+            limit: 20,
+            includeInactive: true,
+            search: search || undefined,
+            category:
+              categoryFilter || undefined,
+          },
         },
-      });
+      );
 
       setProducts(data.products || []);
       setPagination(data.pagination || null);
       setStatus("ready");
     } catch {
+      setProducts([]);
+      setPagination(null);
       setStatus("error");
     }
+  }, [page, search, categoryFilter]);
+
+  useEffect(() => {
+    loadProducts();
+  }, [loadProducts]);
+
+  /* =========================================================
+     IMAGE PREVIEW CLEANUP
+  ========================================================= */
+
+  useEffect(() => {
+    return () => {
+      if (
+        imagePreview &&
+        imagePreview.startsWith("blob:")
+      ) {
+        URL.revokeObjectURL(imagePreview);
+      }
+    };
+  }, [imagePreview]);
+
+  /* =========================================================
+     CAMERA CLEANUP
+  ========================================================= */
+
+  const stopCamera = useCallback(() => {
+    if (cameraStreamRef.current) {
+      cameraStreamRef.current
+        .getTracks()
+        .forEach((track) => track.stop());
+
+      cameraStreamRef.current = null;
+    }
+
+    if (cameraVideoRef.current) {
+      cameraVideoRef.current.srcObject = null;
+    }
+  }, []);
+
+  const closeCamera = useCallback(() => {
+    stopCamera();
+    setCameraOpen(false);
+    setCameraError("");
+  }, [stopCamera]);
+
+  useEffect(() => {
+    return () => {
+      stopCamera();
+    };
+  }, [stopCamera]);
+
+  /* =========================================================
+     FORM RESET
+  ========================================================= */
+
+  function resetForm() {
+    setForm({ ...EMPTY_FORM });
+
+    setVariants([]);
+
+    setPricingType("standard");
+
+    setTypes([
+      createEmptyType(),
+    ]);
+
+    setImageFile(null);
+    setImagePreview("");
+
+    setError("");
   }
 
   /* =========================================================
@@ -276,22 +401,8 @@ export default function AdminProducts() {
   ========================================================= */
 
   function openCreate() {
-    setForm({
-      ...EMPTY_FORM,
-    });
-
-    setVariants([]);
-
-    setPricingType("standard");
-
-    setTypes([createEmptyType()]);
-
-    setImageFile(null);
-    setImagePreview("");
-
-    setError("");
-
     closeCamera();
+    resetForm();
 
     setModal({
       mode: "create",
@@ -303,37 +414,47 @@ export default function AdminProducts() {
   ========================================================= */
 
   function openEdit(product) {
-    const currentPricingType = product.pricingType || "standard";
+    closeCamera();
+
+    const currentPricingType =
+      product.pricingType || "standard";
 
     setForm({
       name: product.name || "",
       price: product.price ?? "",
       mrp: product.mrp ?? "",
-      category: product.category?._id || "",
-      description: product.description || "",
-      barcode: product.barcode || "",
-      active: product.active !== false,
+      category:
+        product.category?._id || "",
+      description:
+        product.description || "",
+      barcode:
+        product.barcode || "",
+      active:
+        product.active !== false,
     });
 
-    /*
-     * Standard variants
-     */
     setVariants(
-      (product.variants || []).map((variant) => ({
-        unit: variant.unit || "kg",
-        amount: variant.amount ?? "",
-        price: variant.price ?? "",
-        mrp: variant.mrp ?? "",
-      })),
+      Array.isArray(product.variants)
+        ? product.variants.map((variant) => ({
+            unit:
+              variant.unit || "kg",
+            amount:
+              variant.amount ?? "",
+            price:
+              variant.price ?? "",
+            mrp:
+              variant.mrp ?? "",
+          }))
+        : [],
     );
 
-    setPricingType(currentPricingType);
+    setPricingType(
+      currentPricingType,
+    );
 
-    /*
-     * Type-based variants
-     */
     if (
-      currentPricingType === "type-based" &&
+      currentPricingType ===
+        "type-based" &&
       Array.isArray(product.types) &&
       product.types.length > 0
     ) {
@@ -341,26 +462,36 @@ export default function AdminProducts() {
         product.types.map((type) => ({
           name: type.name || "",
           sizes:
-            Array.isArray(type.sizes) && type.sizes.length > 0
-              ? type.sizes.map((size) => ({
-                  unit: size.unit || "kg",
-                  amount: size.amount ?? "",
-                  price: size.price ?? "",
-                  mrp: size.mrp ?? "",
-                }))
+            Array.isArray(type.sizes) &&
+            type.sizes.length > 0
+              ? type.sizes.map(
+                  (size) => ({
+                    unit:
+                      size.unit ||
+                      "kg",
+                    amount:
+                      size.amount ??
+                      "",
+                    price:
+                      size.price ??
+                      "",
+                    mrp:
+                      size.mrp ??
+                      "",
+                  }),
+                )
               : [createEmptySize()],
         })),
       );
     } else {
-      setTypes([createEmptyType()]);
+      setTypes([
+        createEmptyType(),
+      ]);
     }
 
     setImageFile(null);
     setImagePreview("");
-
     setError("");
-
-    closeCamera();
 
     setModal({
       mode: "edit",
@@ -369,150 +500,105 @@ export default function AdminProducts() {
   }
 
   /* =========================================================
-     PRICING TYPE CHANGE
+     CLOSE MODAL
+  ========================================================= */
+
+  function closeModal() {
+    if (saving) return;
+
+    closeCamera();
+    setModal(null);
+    setError("");
+  }
+
+  /* =========================================================
+     FORM UPDATE
+  ========================================================= */
+
+  function updateForm(field, value) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  /* =========================================================
+     PRICING TYPE
   ========================================================= */
 
   function handlePricingTypeChange(value) {
     setPricingType(value);
-
     setError("");
 
     if (value === "standard") {
-      /*
-       * Standard product:
-       * price/mrp belong to product OR variants
-       */
-      setTypes([createEmptyType()]);
+      setTypes([
+        createEmptyType(),
+      ]);
     }
 
     if (value === "type-based") {
-      /*
-       * Type-based product:
-       * price/mrp come from type sizes
-       */
       setVariants([]);
-      setTypes([createEmptyType()]);
+      setTypes([
+        createEmptyType(),
+      ]);
+
+      setForm((current) => ({
+        ...current,
+        price: "",
+        mrp: "",
+      }));
     }
   }
 
   /* =========================================================
-     TYPE NAME UPDATE
-  ========================================================= */
-
-  function updateTypeName(typeIndex, value) {
-    setTypes((current) =>
-      current.map((type, index) =>
-        index === typeIndex
-          ? {
-              ...type,
-              name: value,
-            }
-          : type,
-      ),
-    );
-  }
-
-  /* =========================================================
-     ADD TYPE
-  ========================================================= */
-
-  function addType() {
-    setTypes((current) => [...current, createEmptyType()]);
-  }
-
-  /* =========================================================
-     REMOVE TYPE
-  ========================================================= */
-
-  function removeType(typeIndex) {
-    setTypes((current) => current.filter((_, index) => index !== typeIndex));
-  }
-
-  /* =========================================================
-     UPDATE TYPE SIZE
-  ========================================================= */
-
-  function updateTypeSize(typeIndex, sizeIndex, field, value) {
-    setTypes((current) =>
-      current.map((type, index) => {
-        if (index !== typeIndex) {
-          return type;
-        }
-
-        return {
-          ...type,
-          sizes: type.sizes.map((size, index) =>
-            index === sizeIndex
-              ? {
-                  ...size,
-                  [field]: value,
-                }
-              : size,
-          ),
-        };
-      }),
-    );
-  }
-
-  /* =========================================================
-     ADD TYPE SIZE
-  ========================================================= */
-
-  function addTypeSize(typeIndex) {
-    setTypes((current) =>
-      current.map((type, index) =>
-        index === typeIndex
-          ? {
-              ...type,
-              sizes: [...type.sizes, createEmptySize()],
-            }
-          : type,
-      ),
-    );
-  }
-
-  /* =========================================================
-     REMOVE TYPE SIZE
-  ========================================================= */
-
-  function removeTypeSize(typeIndex, sizeIndex) {
-    setTypes((current) =>
-      current.map((type, index) =>
-        index === typeIndex
-          ? {
-              ...type,
-              sizes: type.sizes.filter((_, index) => index !== sizeIndex),
-            }
-          : type,
-      ),
-    );
-  }
-
-  /* =========================================================
-     VALIDATE STANDARD VARIANTS
+     STANDARD VARIANTS
   ========================================================= */
 
   function validateStandardVariants() {
     const seen = new Set();
 
     for (const variant of variants) {
-      if (!variant.amount || Number(variant.amount) <= 0) {
+      if (
+        !isValidNonNegativeNumber(
+          variant.amount,
+        ) ||
+        Number(variant.amount) <= 0
+      ) {
         return "Every size needs a positive amount.";
       }
 
-      if (variant.price === "" || Number(variant.price) < 0) {
+      if (
+        !isValidNonNegativeNumber(
+          variant.price,
+        )
+      ) {
         return "Every size needs a valid price.";
       }
 
       if (
         variant.mrp !== "" &&
-        variant.mrp != null &&
-        Number(variant.mrp) < Number(variant.price)
+        variant.mrp !== null &&
+        variant.mrp !== undefined
       ) {
-        return "MRP cannot be lower than selling price.";
+        if (
+          !isValidNonNegativeNumber(
+            variant.mrp,
+          )
+        ) {
+          return "Every MRP must be a valid number.";
+        }
+
+        if (
+          Number(variant.mrp) <
+          Number(variant.price)
+        ) {
+          return "MRP cannot be lower than selling price.";
+        }
       }
 
-      const key = `${variant.amount}-${variant.unit}`;
+      const key = `${Number(
+        variant.amount,
+      )}-${variant.unit}`;
 
       if (seen.has(key)) {
         return `Duplicate size found: ${variant.amount} ${variant.unit}.`;
@@ -525,7 +611,7 @@ export default function AdminProducts() {
   }
 
   /* =========================================================
-     VALIDATE TYPE-BASED PRODUCTS
+     TYPE-BASED VALIDATION
   ========================================================= */
 
   function validateTypes() {
@@ -536,44 +622,75 @@ export default function AdminProducts() {
     const typeNames = new Set();
 
     for (const type of types) {
-      const typeName = type.name.trim();
+      const typeName =
+        String(type.name || "").trim();
 
       if (!typeName) {
         return "Every product type needs a name.";
       }
 
-      const normalizedTypeName = typeName.toLowerCase();
+      const normalizedName =
+        typeName.toLowerCase();
 
-      if (typeNames.has(normalizedTypeName)) {
+      if (typeNames.has(normalizedName)) {
         return `Duplicate product type: ${typeName}.`;
       }
 
-      typeNames.add(normalizedTypeName);
+      typeNames.add(
+        normalizedName,
+      );
 
-      if (!Array.isArray(type.sizes) || type.sizes.length === 0) {
+      if (
+        !Array.isArray(type.sizes) ||
+        type.sizes.length === 0
+      ) {
         return `Add at least one size for ${typeName}.`;
       }
 
       const sizeKeys = new Set();
 
       for (const size of type.sizes) {
-        if (!size.amount || Number(size.amount) <= 0) {
+        if (
+          !isValidNonNegativeNumber(
+            size.amount,
+          ) ||
+          Number(size.amount) <= 0
+        ) {
           return `Every size in ${typeName} needs a positive amount.`;
         }
 
-        if (size.price === "" || Number(size.price) < 0) {
+        if (
+          !isValidNonNegativeNumber(
+            size.price,
+          )
+        ) {
           return `Every size in ${typeName} needs a valid price.`;
         }
 
         if (
           size.mrp !== "" &&
-          size.mrp != null &&
-          Number(size.mrp) < Number(size.price)
+          size.mrp !== null &&
+          size.mrp !== undefined
         ) {
-          return `MRP cannot be lower than selling price for ${typeName}.`;
+          if (
+            !isValidNonNegativeNumber(
+              size.mrp,
+            )
+          ) {
+            return `Every MRP in ${typeName} must be valid.`;
+          }
+
+          if (
+            Number(size.mrp) <
+            Number(size.price)
+          ) {
+            return `MRP cannot be lower than selling price for ${typeName}.`;
+          }
         }
 
-        const sizeKey = `${size.amount}-${size.unit}`;
+        const sizeKey = `${Number(
+          size.amount,
+        )}-${size.unit}`;
 
         if (sizeKeys.has(sizeKey)) {
           return `Duplicate size ${size.amount} ${size.unit} in ${typeName}.`;
@@ -587,12 +704,18 @@ export default function AdminProducts() {
   }
 
   /* =========================================================
-     VALIDATE FORM
+     FORM VALIDATION
   ========================================================= */
 
   function validateForm() {
-    if (!form.name.trim()) {
+    const name = form.name.trim();
+
+    if (!name) {
       return "Product name is required.";
+    }
+
+    if (name.length > 150) {
+      return "Product name cannot exceed 150 characters.";
     }
 
     if (!form.category) {
@@ -600,39 +723,134 @@ export default function AdminProducts() {
     }
 
     if (pricingType === "standard") {
-      /*
-       * Standard product can have:
-       *
-       * 1. Single price
-       * OR
-       * 2. Multiple variants
-       */
-
-      if (form.price === "" && variants.length === 0) {
+      if (
+        form.price === "" &&
+        variants.length === 0
+      ) {
         return "Enter a product price or add at least one size.";
       }
 
-      if (form.price !== "" && Number(form.price) < 0) {
-        return "Price cannot be negative.";
+      if (
+        form.price !== "" &&
+        !isValidNonNegativeNumber(
+          form.price,
+        )
+      ) {
+        return "Price must be a valid non-negative number.";
       }
 
       if (
         form.mrp !== "" &&
-        form.mrp != null &&
-        Number(form.mrp) < Number(form.price || 0)
+        form.mrp !== null &&
+        form.mrp !== undefined
       ) {
-        return "MRP cannot be lower than selling price.";
+        if (
+          !isValidNonNegativeNumber(
+            form.mrp,
+          )
+        ) {
+          return "MRP must be a valid non-negative number.";
+        }
+
+        if (
+          Number(form.mrp) <
+          Number(form.price || 0)
+        ) {
+          return "MRP cannot be lower than selling price.";
+        }
       }
 
       return validateStandardVariants();
     }
 
-    /*
-     * Type-based:
-     * price is stored inside types[].sizes[]
-     */
-
     return validateTypes();
+  }
+
+  /* =========================================================
+     BUILD FORM DATA
+  ========================================================= */
+
+  function buildFormData() {
+    const fd = new FormData();
+
+    Object.entries(form).forEach(
+      ([key, value]) => {
+        fd.append(
+          key,
+          value ?? "",
+        );
+      },
+    );
+
+    fd.append(
+      "pricingType",
+      pricingType,
+    );
+
+    fd.append(
+      "variants",
+      JSON.stringify(
+        pricingType === "standard"
+          ? variants.map(
+              (variant) => ({
+                unit: variant.unit,
+                amount: Number(
+                  variant.amount,
+                ),
+                price: Number(
+                  variant.price,
+                ),
+                mrp:
+                  normalizeOptionalNumber(
+                    variant.mrp,
+                  ),
+              }),
+            )
+          : [],
+      ),
+    );
+
+    fd.append(
+      "types",
+      JSON.stringify(
+        pricingType ===
+          "type-based"
+          ? types.map(
+              (type) => ({
+                name: type.name.trim(),
+                sizes:
+                  type.sizes.map(
+                    (size) => ({
+                      unit:
+                        size.unit,
+                      amount:
+                        Number(
+                          size.amount,
+                        ),
+                      price:
+                        Number(
+                          size.price,
+                        ),
+                      mrp:
+                        normalizeOptionalNumber(
+                          size.mrp,
+                        ),
+                    }),
+                  ),
+              }),
+            )
+          : [],
+      ),
+    );
+
+    if (imageFile) {
+      fd.append(
+        "image",
+        imageFile,
+      );
+    }
+
+    return fd;
   }
 
   /* =========================================================
@@ -642,10 +860,15 @@ export default function AdminProducts() {
   async function handleSave(e) {
     e.preventDefault();
 
-    const validationError = validateForm();
+    if (saving) return;
+
+    const validationError =
+      validateForm();
 
     if (validationError) {
-      setError(validationError);
+      setError(
+        validationError,
+      );
       return;
     }
 
@@ -653,90 +876,34 @@ export default function AdminProducts() {
     setError("");
 
     try {
-      const fd = new FormData();
+      const fd =
+        buildFormData();
 
-      Object.entries(form).forEach(([key, value]) => {
-        fd.append(key, value);
-      });
-
-      /*
-       * STANDARD VARIANTS
-       */
-
-      fd.append(
-        "variants",
-        JSON.stringify(
-          pricingType === "standard"
-            ? variants.map((variant) => ({
-                unit: variant.unit,
-                amount: Number(variant.amount),
-                price: Number(variant.price),
-                mrp:
-                  variant.mrp === "" || variant.mrp == null
-                    ? null
-                    : Number(variant.mrp),
-              }))
-            : [],
-        ),
-      );
-
-      /*
-       * PRICING TYPE
-       */
-
-      fd.append("pricingType", pricingType);
-
-      /*
-       * TYPE-BASED DATA
-       */
-
-      fd.append(
-        "types",
-        JSON.stringify(
-          pricingType === "type-based"
-            ? types.map((type) => ({
-                name: type.name.trim(),
-
-                sizes: type.sizes.map((size) => ({
-                  unit: size.unit,
-                  amount: Number(size.amount),
-                  price: Number(size.price),
-                  mrp:
-                    size.mrp === "" || size.mrp == null
-                      ? null
-                      : Number(size.mrp),
-                })),
-              }))
-            : [],
-        ),
-      );
-
-      /*
-       * IMAGE
-       */
-
-      if (imageFile) {
-        fd.append("image", imageFile);
-      }
-
-      /*
-       * CREATE
-       */
-
-      if (modal.mode === "create") {
-        await api.post("/products", fd);
+      if (
+        modal.mode === "create"
+      ) {
+        await api.post(
+          "/products",
+          fd,
+        );
       } else {
-        /*
-         * EDIT
-         */
-        await api.put(`/products/${modal.data._id}`, fd);
+        await api.put(
+          `/products/${modal.data._id}`,
+          fd,
+        );
       }
 
+      closeCamera();
       setModal(null);
+      setError("");
 
-      loadProducts();
+      await loadProducts();
     } catch (err) {
-      setError(err.response?.data?.message || "Could not save product.");
+      setError(
+        err.response?.data
+          ?.message ||
+          "Could not save product.",
+      );
     } finally {
       setSaving(false);
     }
@@ -746,21 +913,30 @@ export default function AdminProducts() {
      DELETE
   ========================================================= */
 
-  async function handleDelete(product) {
-    const confirmed = window.confirm(
-      `Delete "${product.name}"? This also removes its image from Cloudinary.`,
-    );
+  async function handleDelete(
+    product,
+  ) {
+    const confirmed =
+      window.confirm(
+        `Delete "${product.name}"?\n\nThis will also remove its product image from Cloudinary if your server is configured to do so.`,
+      );
 
     if (!confirmed) {
       return;
     }
 
     try {
-      await api.delete(`/products/${product._id}`);
+      await api.delete(
+        `/products/${product._id}`,
+      );
 
-      loadProducts();
+      await loadProducts();
     } catch (err) {
-      alert(err.response?.data?.message || "Could not delete product.");
+      window.alert(
+        err.response?.data
+          ?.message ||
+          "Could not delete product.",
+      );
     }
   }
 
@@ -768,106 +944,198 @@ export default function AdminProducts() {
      TOGGLE ACTIVE
   ========================================================= */
 
-  async function toggleActive(product) {
+  async function toggleActive(
+    product,
+  ) {
+    const nextActive =
+      !product.active;
+
     try {
-      const fd = new FormData();
+      const fd =
+        new FormData();
 
-      fd.append("active", String(!product.active));
+      fd.append(
+        "active",
+        String(nextActive),
+      );
 
-      await api.put(`/products/${product._id}`, fd, {
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
-      });
+      await api.put(
+        `/products/${product._id}`,
+        fd,
+      );
 
-      loadProducts();
-    } catch {
-      alert("Could not update status.");
+      setProducts(
+        (current) =>
+          current.map(
+            (item) =>
+              item._id ===
+              product._id
+                ? {
+                    ...item,
+                    active:
+                      nextActive,
+                  }
+                : item,
+          ),
+      );
+    } catch (err) {
+      window.alert(
+        err.response?.data
+          ?.message ||
+          "Could not update status.",
+      );
     }
   }
 
-  const cameraInputRef = useRef(null);
-  const fileInputRef = useRef(null);
-
   /* =========================================================
-   IMAGE UPLOAD
-========================================================= */
+     IMAGE UPLOAD
+  ========================================================= */
 
   function handleImageChange(e) {
-    const file = e.target.files?.[0] || null;
+    const file =
+      e.target.files?.[0];
+
+    e.target.value = "";
 
     if (!file) return;
 
-    if (!file.type.startsWith("image/")) {
-      setError("Please select a valid image.");
+    if (
+      !file.type.startsWith(
+        "image/",
+      )
+    ) {
+      setError(
+        "Please select a valid image.",
+      );
       return;
     }
 
+    if (
+      file.size >
+      5 * 1024 * 1024
+    ) {
+      setError(
+        "Image must be smaller than 5 MB.",
+      );
+      return;
+    }
+
+    if (
+      imagePreview &&
+      imagePreview.startsWith(
+        "blob:",
+      )
+    ) {
+      URL.revokeObjectURL(
+        imagePreview,
+      );
+    }
+
+    const previewUrl =
+      URL.createObjectURL(
+        file,
+      );
+
     setImageFile(file);
-
-    const previewUrl = URL.createObjectURL(file);
-    setImagePreview(previewUrl);
-
+    setImagePreview(
+      previewUrl,
+    );
     setError("");
+  }
 
-    // Allow selecting the same image again
-    e.target.value = "";
+  function removeImage() {
+    if (
+      imagePreview &&
+      imagePreview.startsWith(
+        "blob:",
+      )
+    ) {
+      URL.revokeObjectURL(
+        imagePreview,
+      );
+    }
+
+    setImageFile(null);
+    setImagePreview("");
   }
 
   /* =========================================================
-   OPEN CAMERA
-========================================================= */
+     CAMERA
+  ========================================================= */
 
   async function openCamera() {
+    if (cameraOpen) return;
+
     try {
       setCameraError("");
 
-      if (!navigator.mediaDevices?.getUserMedia) {
-        setCameraError("Camera access is not supported by this browser.");
+      if (
+        !navigator.mediaDevices?.getUserMedia
+      ) {
+        setCameraError(
+          "Camera access is not supported by this browser.",
+        );
         return;
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
-        video: {
-          facingMode: {
-            ideal: "environment",
+      const stream =
+        await navigator.mediaDevices.getUserMedia(
+          {
+            video: {
+              facingMode: {
+                ideal:
+                  "environment",
+              },
+              width: {
+                ideal: 1280,
+              },
+              height: {
+                ideal: 720,
+              },
+            },
+            audio: false,
           },
-          width: {
-            ideal: 1280,
-          },
-          height: {
-            ideal: 720,
-          },
-        },
-        audio: false,
-      });
+        );
 
-      cameraStreamRef.current = stream;
+      cameraStreamRef.current =
+        stream;
+
       setCameraOpen(true);
-
-      // Wait until camera modal/video is mounted
-      requestAnimationFrame(() => {
-        if (cameraVideoRef.current) {
-          cameraVideoRef.current.srcObject = stream;
-
-          cameraVideoRef.current.play().catch(() => {});
-        }
-      });
     } catch (err) {
-      console.error("Camera error:", err);
+      console.error(
+        "Camera error:",
+        err,
+      );
 
       if (
-        err.name === "NotAllowedError" ||
-        err.name === "PermissionDeniedError"
+        err.name ===
+          "NotAllowedError" ||
+        err.name ===
+          "PermissionDeniedError"
       ) {
         setCameraError(
           "Camera permission was denied. Please allow camera access in your browser.",
         );
-      } else if (err.name === "NotFoundError") {
-        setCameraError("No camera was found on this device.");
-      } else if (err.name === "NotReadableError") {
+      } else if (
+        err.name ===
+        "NotFoundError"
+      ) {
+        setCameraError(
+          "No camera was found on this device.",
+        );
+      } else if (
+        err.name ===
+        "NotReadableError"
+      ) {
         setCameraError(
           "The camera is already being used by another application.",
+        );
+      } else if (
+        err.name ===
+        "SecurityError"
+      ) {
+        setCameraError(
+          "Camera access requires a secure connection (HTTPS or localhost).",
         );
       } else {
         setCameraError(
@@ -878,70 +1146,122 @@ export default function AdminProducts() {
   }
 
   /* =========================================================
-   CLOSE CAMERA
-========================================================= */
+     ATTACH CAMERA STREAM
+  ========================================================= */
 
-  function closeCamera() {
-    if (cameraStreamRef.current) {
-      cameraStreamRef.current.getTracks().forEach((track) => {
-        track.stop();
-      });
-
-      cameraStreamRef.current = null;
+  useEffect(() => {
+    if (
+      !cameraOpen ||
+      !cameraVideoRef.current ||
+      !cameraStreamRef.current
+    ) {
+      return;
     }
 
-    if (cameraVideoRef.current) {
-      cameraVideoRef.current.srcObject = null;
-    }
+    const video =
+      cameraVideoRef.current;
 
-    setCameraOpen(false);
-    setCameraError("");
-  }
+    video.srcObject =
+      cameraStreamRef.current;
+
+    video
+      .play()
+      .catch(() => {});
+
+    return () => {
+      video.srcObject = null;
+    };
+  }, [cameraOpen]);
 
   /* =========================================================
-   CAPTURE PHOTO
-========================================================= */
+     CAPTURE PHOTO
+  ========================================================= */
 
   function capturePhoto() {
-    const video = cameraVideoRef.current;
+    const video =
+      cameraVideoRef.current;
 
     if (!video) return;
 
-    if (!video.videoWidth || !video.videoHeight) {
-      setCameraError("Camera is not ready yet. Please wait a moment.");
+    if (
+      !video.videoWidth ||
+      !video.videoHeight
+    ) {
+      setCameraError(
+        "Camera is not ready yet. Please wait a moment.",
+      );
       return;
     }
 
-    const canvas = document.createElement("canvas");
+    const canvas =
+      document.createElement(
+        "canvas",
+      );
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+    canvas.width =
+      video.videoWidth;
 
-    const context = canvas.getContext("2d");
+    canvas.height =
+      video.videoHeight;
+
+    const context =
+      canvas.getContext(
+        "2d",
+      );
 
     if (!context) {
-      setCameraError("Could not capture the photo.");
+      setCameraError(
+        "Could not capture the photo.",
+      );
       return;
     }
 
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    context.drawImage(
+      video,
+      0,
+      0,
+      canvas.width,
+      canvas.height,
+    );
 
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          setCameraError("Could not create the image.");
+          setCameraError(
+            "Could not create the image.",
+          );
           return;
         }
 
-        const file = new File([blob], `product-${Date.now()}.jpg`, {
-          type: "image/jpeg",
-        });
+        const file =
+          new File(
+            [blob],
+            `product-${Date.now()}.jpg`,
+            {
+              type: "image/jpeg",
+            },
+          );
+
+        if (
+          imagePreview &&
+          imagePreview.startsWith(
+            "blob:",
+          )
+        ) {
+          URL.revokeObjectURL(
+            imagePreview,
+          );
+        }
+
+        const previewUrl =
+          URL.createObjectURL(
+            file,
+          );
 
         setImageFile(file);
-
-        const previewUrl = URL.createObjectURL(file);
-        setImagePreview(previewUrl);
-
+        setImagePreview(
+          previewUrl,
+        );
         setError("");
 
         closeCamera();
@@ -952,16 +1272,125 @@ export default function AdminProducts() {
   }
 
   /* =========================================================
-   CAMERA CLEANUP
-========================================================= */
+     TYPE HELPERS
+  ========================================================= */
 
-  useEffect(() => {
-    return () => {
-      if (cameraStreamRef.current) {
-        cameraStreamRef.current.getTracks().forEach((track) => track.stop());
-      }
-    };
-  }, []);
+  function updateTypeName(
+    typeIndex,
+    value,
+  ) {
+    setTypes((current) =>
+      current.map(
+        (type, index) =>
+          index === typeIndex
+            ? {
+                ...type,
+                name: value,
+              }
+            : type,
+      ),
+    );
+  }
+
+  function addType() {
+    setTypes((current) => [
+      ...current,
+      createEmptyType(),
+    ]);
+  }
+
+  function removeType(
+    typeIndex,
+  ) {
+    setTypes((current) =>
+      current.filter(
+        (_, index) =>
+          index !== typeIndex,
+      ),
+    );
+  }
+
+  function updateTypeSize(
+    typeIndex,
+    sizeIndex,
+    field,
+    value,
+  ) {
+    setTypes((current) =>
+      current.map(
+        (type, index) => {
+          if (
+            index !== typeIndex
+          ) {
+            return type;
+          }
+
+          return {
+            ...type,
+            sizes:
+              type.sizes.map(
+                (
+                  size,
+                  currentSizeIndex,
+                ) =>
+                  currentSizeIndex ===
+                  sizeIndex
+                    ? {
+                        ...size,
+                        [field]:
+                          value,
+                      }
+                    : size,
+              ),
+          };
+        },
+      ),
+    );
+  }
+
+  function addTypeSize(
+    typeIndex,
+  ) {
+    setTypes((current) =>
+      current.map(
+        (type, index) =>
+          index === typeIndex
+            ? {
+                ...type,
+                sizes: [
+                  ...type.sizes,
+                  createEmptySize(),
+                ],
+              }
+            : type,
+      ),
+    );
+  }
+
+  function removeTypeSize(
+    typeIndex,
+    sizeIndex,
+  ) {
+    setTypes((current) =>
+      current.map(
+        (type, index) =>
+          index === typeIndex
+            ? {
+                ...type,
+                sizes:
+                  type.sizes.filter(
+                    (
+                      _,
+                      currentSizeIndex,
+                    ) =>
+                      currentSizeIndex !==
+                      sizeIndex,
+                  ),
+              }
+            : type,
+      ),
+    );
+  }
 
   /* =========================================================
      RENDER
@@ -976,7 +1405,11 @@ export default function AdminProducts() {
       <div className="admin-page-header">
         <h1>Products</h1>
 
-        <button className="btn btn-primary" onClick={openCreate}>
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={openCreate}
+        >
           + Add product
         </button>
       </div>
@@ -987,28 +1420,43 @@ export default function AdminProducts() {
 
       <div className="admin-toolbar">
         <input
+          type="search"
           placeholder="Search products…"
-          value={search}
-          onChange={(e) => {
-            setPage(1);
-            setSearch(e.target.value);
-          }}
+          value={searchInput}
+          onChange={(e) =>
+            setSearchInput(
+              e.target.value,
+            )
+          }
+          aria-label="Search products"
         />
 
         <select
           value={categoryFilter}
           onChange={(e) => {
             setPage(1);
-            setCategoryFilter(e.target.value);
+            setCategoryFilter(
+              e.target.value,
+            );
           }}
+          aria-label="Filter by category"
         >
-          <option value="">All categories</option>
+          <option value="">
+            All categories
+          </option>
 
-          {categories.map((category) => (
-            <option key={category._id} value={category._id}>
-              {category.name}
-            </option>
-          ))}
+          {categories.map(
+            (category) => (
+              <option
+                key={category._id}
+                value={
+                  category._id
+                }
+              >
+                {category.name}
+              </option>
+            ),
+          )}
         </select>
       </div>
 
@@ -1017,601 +1465,798 @@ export default function AdminProducts() {
       ===================================================== */}
 
       <div className="admin-card">
-        {status === "loading" && <p>Loading…</p>}
+        {status === "loading" && (
+          <p>Loading…</p>
+        )}
 
         {status === "error" && (
-          <p className="field-error">Couldn't load products.</p>
+          <div>
+            <p className="field-error">
+              Couldn't load products.
+            </p>
+
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={
+                loadProducts
+              }
+            >
+              Try again
+            </button>
+          </div>
         )}
 
         {status === "ready" && (
           <>
-            <table className="admin-table">
-              <thead>
-                <tr>
-                  <th></th>
-                  <th>Name</th>
-                  <th>Category</th>
-                  <th>Price</th>
-                  <th>Options</th>
-                  <th>Status</th>
-                  <th></th>
-                </tr>
-              </thead>
+            <div className="admin-table-scroll">
+              <table className="admin-table">
+                <thead>
+                  <tr>
+                    <th scope="col"></th>
+                    <th scope="col">
+                      Name
+                    </th>
+                    <th scope="col">
+                      Category
+                    </th>
+                    <th scope="col">
+                      Price
+                    </th>
+                    <th scope="col">
+                      Options
+                    </th>
+                    <th scope="col">
+                      Status
+                    </th>
+                    <th scope="col"></th>
+                  </tr>
+                </thead>
 
-              <tbody>
-                {products.map((product) => {
-                  const isTypeBased = product.pricingType === "type-based";
+                <tbody>
+                  {products.map(
+                    (product) => {
+                      const isTypeBased =
+                        product.pricingType ===
+                        "type-based";
 
-                  const typeCount = product.types?.length || 0;
+                      const typeCount =
+                        Array.isArray(
+                          product.types,
+                        )
+                          ? product
+                              .types
+                              .length
+                          : 0;
 
-                  const variantCount = product.variants?.length || 0;
+                      const variantCount =
+                        Array.isArray(
+                          product.variants,
+                        )
+                          ? product
+                              .variants
+                              .length
+                          : 0;
 
-                  return (
-                    <tr key={product._id}>
-                      <td>
-                        {product.imageUrl ? (
-                          <img
-                            className="thumb"
-                            src={product.imageUrl}
-                            alt=""
-                          />
-                        ) : null}
-                      </td>
-
-                      <td>{product.name}</td>
-
-                      <td>{product.category?.name || "—"}</td>
-
-                      <td>
-                        {isTypeBased
-                          ? "Type-based"
-                          : formatCurrency(product.price)}
-                      </td>
-
-                      <td>
-                        {isTypeBased
-                          ? `${typeCount} types`
-                          : variantCount
-                            ? `${variantCount} sizes`
-                            : "Single price"}
-                      </td>
-
-                      <td>
-                        <button
-                          className={`badge ${
-                            product.active ? "badge-active" : "badge-inactive"
-                          }`}
-                          style={{
-                            border: "none",
-                          }}
-                          onClick={() => toggleActive(product)}
+                      return (
+                        <tr
+                          key={
+                            product._id
+                          }
                         >
-                          {product.active ? "Active" : "Inactive"}
-                        </button>
-                      </td>
+                          <td>
+                            {product.imageUrl ? (
+                              <img
+                                className="thumb"
+                                src={
+                                  product.imageUrl
+                                }
+                                alt=""
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span>
+                                —
+                              </span>
+                            )}
+                          </td>
 
-                      <td>
-                        <button
-                          className="icon-btn"
-                          onClick={() => openEdit(product)}
-                        >
-                          Edit
-                        </button>
+                          <td>
+                            {product.name}
+                          </td>
 
-                        <button
-                          className="icon-btn danger"
-                          onClick={() => handleDelete(product)}
-                        >
-                          Delete
-                        </button>
+                          <td>
+                            {product
+                              .category
+                              ?.name ||
+                              "—"}
+                          </td>
+
+                          <td>
+                            {isTypeBased
+                              ? "Type-based"
+                              : formatCurrency(
+                                  product.price,
+                                )}
+                          </td>
+
+                          <td>
+                            {isTypeBased
+                              ? `${typeCount} types`
+                              : variantCount
+                                ? `${variantCount} sizes`
+                                : "Single price"}
+                          </td>
+
+                          <td>
+                            <button
+                              type="button"
+                              className={`badge ${
+                                product.active
+                                  ? "badge-active"
+                                  : "badge-inactive"
+                              }`}
+                              onClick={() =>
+                                toggleActive(
+                                  product,
+                                )
+                              }
+                              aria-label={`Set ${product.name} ${
+                                product.active
+                                  ? "inactive"
+                                  : "active"
+                              }`}
+                            >
+                              {product.active
+                                ? "Active"
+                                : "Inactive"}
+                            </button>
+                          </td>
+
+                          <td>
+                            <button
+                              type="button"
+                              className="icon-btn"
+                              onClick={() =>
+                                openEdit(
+                                  product,
+                                )
+                              }
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              className="icon-btn danger"
+                              onClick={() =>
+                                handleDelete(
+                                  product,
+                                )
+                              }
+                            >
+                              Delete
+                            </button>
+                          </td>
+                        </tr>
+                      );
+                    },
+                  )}
+
+                  {products.length ===
+                    0 && (
+                    <tr>
+                      <td
+                        colSpan={7}
+                      >
+                        No products found.
                       </td>
                     </tr>
-                  );
-                })}
-
-                {products.length === 0 && (
-                  <tr>
-                    <td colSpan={7}>No products found.</td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+                  )}
+                </tbody>
+              </table>
+            </div>
 
             {/* =================================================
                 PAGINATION
             ================================================= */}
 
-            {pagination && pagination.totalPages > 1 && (
-              <div className="pagination">
-                <button
-                  className="btn btn-outline"
-                  disabled={page <= 1}
-                  onClick={() => setPage((p) => p - 1)}
-                >
-                  Previous
-                </button>
+            {pagination &&
+              pagination.totalPages >
+                1 && (
+                <div className="pagination">
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={
+                      page <= 1
+                    }
+                    onClick={() =>
+                      setPage(
+                        (current) =>
+                          current -
+                          1,
+                      )
+                    }
+                  >
+                    Previous
+                  </button>
 
-                <span>
-                  Page {pagination.page} of {pagination.totalPages}
-                </span>
+                  <span>
+                    Page{" "}
+                    {
+                      pagination.page
+                    }{" "}
+                    of{" "}
+                    {
+                      pagination.totalPages
+                    }
+                  </span>
 
-                <button
-                  className="btn btn-outline"
-                  disabled={page >= pagination.totalPages}
-                  onClick={() => setPage((p) => p + 1)}
-                >
-                  Next
-                </button>
-              </div>
-            )}
+                  <button
+                    type="button"
+                    className="btn btn-outline"
+                    disabled={
+                      page >=
+                      pagination.totalPages
+                    }
+                    onClick={() =>
+                      setPage(
+                        (current) =>
+                          current +
+                          1,
+                      )
+                    }
+                  >
+                    Next
+                  </button>
+                </div>
+              )}
           </>
         )}
       </div>
 
       {/* =====================================================
-          MODAL
+          PRODUCT MODAL
       ===================================================== */}
 
       {modal && (
-        <div className="modal-backdrop" onClick={() => setModal(null)}>
+        <div
+          className="modal-backdrop"
+          onMouseDown={(e) => {
+            if (
+              e.target ===
+              e.currentTarget
+            ) {
+              closeModal();
+            }
+          }}
+        >
           <form
             className="modal-card"
-            onClick={(e) => e.stopPropagation()}
             onSubmit={handleSave}
           >
-            <h2>{modal.mode === "create" ? "Add product" : "Edit product"}</h2>
+            <h2>
+              {modal.mode ===
+              "create"
+                ? "Add product"
+                : "Edit product"}
+            </h2>
 
             <div className="form-grid">
-              {/* =================================================
-                  NAME
-              ================================================= */}
+              {/* NAME */}
 
               <label>
                 Name
+
                 <input
-                  value={form.name}
+                  value={
+                    form.name
+                  }
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      name: e.target.value,
-                    })
+                    updateForm(
+                      "name",
+                      e.target
+                        .value,
+                    )
                   }
                   required
+                  maxLength={150}
+                  autoComplete="off"
                 />
               </label>
 
-              {/* =================================================
-                  PRICING TYPE
-              ================================================= */}
+              {/* PRICING TYPE */}
 
               <label>
                 Pricing Type
-                <select
-                  value={pricingType}
-                  onChange={(e) => handlePricingTypeChange(e.target.value)}
-                >
-                  <option value="standard">Standard Price</option>
 
-                  <option value="type-based">Type-based Price</option>
+                <select
+                  value={
+                    pricingType
+                  }
+                  onChange={(e) =>
+                    handlePricingTypeChange(
+                      e.target
+                        .value,
+                    )
+                  }
+                >
+                  <option value="standard">
+                    Standard Price
+                  </option>
+
+                  <option value="type-based">
+                    Type-based Price
+                  </option>
                 </select>
               </label>
 
-              {/* =================================================
-                  STANDARD PRICE
-              ================================================= */}
+              {/* STANDARD */}
 
-              {pricingType === "standard" && (
+              {pricingType ===
+                "standard" && (
                 <>
                   <label>
                     Price (₹)
+
                     <input
                       type="number"
                       min="0"
                       step="0.01"
-                      value={form.price}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          price: e.target.value,
-                        })
+                      value={
+                        form.price
                       }
-                      required={variants.length === 0}
+                      onChange={(
+                        e,
+                      ) =>
+                        updateForm(
+                          "price",
+                          e.target
+                            .value,
+                        )
+                      }
+                      required={
+                        variants.length ===
+                        0
+                      }
                     />
                   </label>
 
                   <label>
                     MRP (₹)
-                    <span
-                      style={{
-                        fontWeight: 400,
-                        color: "var(--color-text-muted)",
-                      }}
-                    >
-                      {" "}
+                    <span className="form-help-inline">
                       — optional
                     </span>
+
                     <input
                       type="number"
                       min="0"
                       step="0.01"
-                      value={form.mrp}
-                      onChange={(e) =>
-                        setForm({
-                          ...form,
-                          mrp: e.target.value,
-                        })
+                      value={
+                        form.mrp
+                      }
+                      onChange={(
+                        e,
+                      ) =>
+                        updateForm(
+                          "mrp",
+                          e.target
+                            .value,
+                        )
                       }
                       placeholder="e.g. 120"
                     />
                   </label>
 
-                  {/* STANDARD SIZES */}
+                  <div className="form-full">
+                    <label>
+                      Sizes / quantities
+                    </label>
 
-                  <div
-                    style={{
-                      gridColumn: "1 / -1",
-                    }}
-                  >
-                    <label>Sizes / quantities</label>
-
-                    <VariantEditor variants={variants} onChange={setVariants} />
+                    <VariantEditor
+                      variants={
+                        variants
+                      }
+                      onChange={
+                        setVariants
+                      }
+                    />
                   </div>
                 </>
               )}
 
-              {/* =================================================
-                  TYPE BASED
-              ================================================= */}
+              {/* TYPE BASED */}
 
-              {pricingType === "type-based" && (
-                <div
-                  style={{
-                    gridColumn: "1 / -1",
-                  }}
-                >
-                  <label>Product Types / Quality</label>
+              {pricingType ===
+                "type-based" && (
+                <div className="form-full">
+                  <label>
+                    Product Types /
+                    Quality
+                  </label>
 
-                  <p
-                    style={{
-                      fontSize: 12.5,
-                      color: "var(--color-text-muted)",
-                      margin: "4px 0 12px",
-                    }}
-                  >
-                    Example: Rice → Kolam, Basmati, HMT. Each type can have its
-                    own sizes and prices.
+                  <p className="form-help">
+                    Example: Rice →
+                    Kolam, Basmati,
+                    HMT. Each type
+                    can have its own
+                    sizes and prices.
                   </p>
 
-                  {types.map((type, typeIndex) => (
-                    <div
-                      key={typeIndex}
-                      style={{
-                        border: "1px solid var(--color-border)",
-                        borderRadius: 8,
-                        padding: 12,
-                        marginBottom: 14,
-                      }}
-                    >
-                      {/* TYPE NAME */}
-
+                  {types.map(
+                    (
+                      type,
+                      typeIndex,
+                    ) => (
                       <div
-                        style={{
-                          display: "flex",
-                          gap: 8,
-                          alignItems: "center",
-                          marginBottom: 12,
-                        }}
+                        className="type-editor"
+                        key={`type-${typeIndex}`}
                       >
-                        <input
-                          type="text"
-                          placeholder="Type name e.g. Kolam Rice"
-                          value={type.name}
-                          onChange={(e) =>
-                            updateTypeName(typeIndex, e.target.value)
-                          }
-                          style={{
-                            flex: 1,
-                          }}
-                        />
-
-                        {types.length > 1 && (
-                          <button
-                            type="button"
-                            className="icon-btn danger"
-                            onClick={() => removeType(typeIndex)}
-                          >
-                            Remove type
-                          </button>
-                        )}
-                      </div>
-
-                      {/* SIZES */}
-
-                      <strong
-                        style={{
-                          display: "block",
-                          marginBottom: 8,
-                          fontSize: 13,
-                        }}
-                      >
-                        Sizes & Prices
-                      </strong>
-
-                      {type.sizes.map((size, sizeIndex) => (
-                        <div
-                          key={sizeIndex}
-                          style={{
-                            display: "flex",
-                            gap: 6,
-                            marginBottom: 8,
-                            alignItems: "center",
-                            flexWrap: "wrap",
-                          }}
-                        >
-                          {/* AMOUNT */}
-
+                        <div className="type-editor-header">
                           <input
-                            type="number"
-                            min="0"
-                            step="any"
-                            placeholder="Amount"
-                            value={size.amount}
-                            onChange={(e) =>
-                              updateTypeSize(
+                            type="text"
+                            placeholder="Type name e.g. Kolam Rice"
+                            value={
+                              type.name
+                            }
+                            onChange={(
+                              e,
+                            ) =>
+                              updateTypeName(
                                 typeIndex,
-                                sizeIndex,
-                                "amount",
-                                e.target.value,
+                                e.target
+                                  .value,
                               )
                             }
-                            style={{
-                              width: 80,
-                              padding: "8px 10px",
-                              border: "1.5px solid var(--color-border)",
-                              borderRadius: 6,
-                            }}
+                            maxLength={
+                              100
+                            }
                           />
 
-                          {/* UNIT */}
-
-                          <select
-                            value={size.unit}
-                            onChange={(e) =>
-                              updateTypeSize(
-                                typeIndex,
-                                sizeIndex,
-                                "unit",
-                                e.target.value,
-                              )
-                            }
-                            style={{
-                              padding: "8px 10px",
-                              border: "1.5px solid var(--color-border)",
-                              borderRadius: 6,
-                            }}
-                          >
-                            {UNITS.map((unit) => (
-                              <option key={unit} value={unit}>
-                                {unit}
-                              </option>
-                            ))}
-                          </select>
-
-                          {/* PRICE */}
-
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="Price ₹"
-                            value={size.price}
-                            onChange={(e) =>
-                              updateTypeSize(
-                                typeIndex,
-                                sizeIndex,
-                                "price",
-                                e.target.value,
-                              )
-                            }
-                            style={{
-                              width: 90,
-                              padding: "8px 10px",
-                              border: "1.5px solid var(--color-border)",
-                              borderRadius: 6,
-                            }}
-                          />
-
-                          {/* MRP */}
-
-                          <input
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            placeholder="MRP ₹"
-                            value={size.mrp ?? ""}
-                            onChange={(e) =>
-                              updateTypeSize(
-                                typeIndex,
-                                sizeIndex,
-                                "mrp",
-                                e.target.value,
-                              )
-                            }
-                            style={{
-                              width: 90,
-                              padding: "8px 10px",
-                              border: "1.5px solid var(--color-border)",
-                              borderRadius: 6,
-                            }}
-                          />
-
-                          {/* REMOVE SIZE */}
-
-                          {type.sizes.length > 1 && (
+                          {types.length >
+                            1 && (
                             <button
                               type="button"
                               className="icon-btn danger"
                               onClick={() =>
-                                removeTypeSize(typeIndex, sizeIndex)
+                                removeType(
+                                  typeIndex,
+                                )
                               }
                             >
-                              Remove
+                              Remove type
                             </button>
                           )}
                         </div>
-                      ))}
 
-                      {/* ADD SIZE */}
+                        <strong className="type-editor-title">
+                          Sizes & Prices
+                        </strong>
 
-                      <button
-                        type="button"
-                        className="btn btn-outline"
-                        onClick={() => addTypeSize(typeIndex)}
-                        style={{
-                          padding: "6px 14px",
-                          fontSize: 13,
-                        }}
-                      >
-                        + Add size
-                      </button>
-                    </div>
-                  ))}
+                        {type.sizes.map(
+                          (
+                            size,
+                            sizeIndex,
+                          ) => (
+                            <div
+                              className="variant-row"
+                              key={`type-${typeIndex}-size-${sizeIndex}`}
+                            >
+                              <input
+                                type="number"
+                                min="0"
+                                step="any"
+                                placeholder="Amount"
+                                value={
+                                  size.amount
+                                }
+                                onChange={(
+                                  e,
+                                ) =>
+                                  updateTypeSize(
+                                    typeIndex,
+                                    sizeIndex,
+                                    "amount",
+                                    e
+                                      .target
+                                      .value,
+                                  )
+                                }
+                              />
 
-                  {/* ADD TYPE */}
+                              <select
+                                value={
+                                  size.unit
+                                }
+                                onChange={(
+                                  e,
+                                ) =>
+                                  updateTypeSize(
+                                    typeIndex,
+                                    sizeIndex,
+                                    "unit",
+                                    e
+                                      .target
+                                      .value,
+                                  )
+                                }
+                              >
+                                {UNITS.map(
+                                  (
+                                    unit,
+                                  ) => (
+                                    <option
+                                      key={
+                                        unit
+                                      }
+                                      value={
+                                        unit
+                                      }
+                                    >
+                                      {
+                                        unit
+                                      }
+                                    </option>
+                                  ),
+                                )}
+                              </select>
+
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="Price ₹"
+                                value={
+                                  size.price
+                                }
+                                onChange={(
+                                  e,
+                                ) =>
+                                  updateTypeSize(
+                                    typeIndex,
+                                    sizeIndex,
+                                    "price",
+                                    e
+                                      .target
+                                      .value,
+                                  )
+                                }
+                              />
+
+                              <input
+                                type="number"
+                                min="0"
+                                step="0.01"
+                                placeholder="MRP ₹"
+                                value={
+                                  size.mrp ??
+                                  ""
+                                }
+                                onChange={(
+                                  e,
+                                ) =>
+                                  updateTypeSize(
+                                    typeIndex,
+                                    sizeIndex,
+                                    "mrp",
+                                    e
+                                      .target
+                                      .value,
+                                  )
+                                }
+                              />
+
+                              {type.sizes
+                                .length >
+                                1 && (
+                                <button
+                                  type="button"
+                                  className="icon-btn danger"
+                                  onClick={() =>
+                                    removeTypeSize(
+                                      typeIndex,
+                                      sizeIndex,
+                                    )
+                                  }
+                                >
+                                  Remove
+                                </button>
+                              )}
+                            </div>
+                          ),
+                        )}
+
+                        <button
+                          type="button"
+                          className="btn btn-outline"
+                          onClick={() =>
+                            addTypeSize(
+                              typeIndex,
+                            )
+                          }
+                        >
+                          + Add size
+                        </button>
+                      </div>
+                    ),
+                  )}
 
                   <button
                     type="button"
                     className="btn btn-outline"
                     onClick={addType}
-                    style={{
-                      padding: "6px 14px",
-                      fontSize: 13,
-                    }}
                   >
                     + Add product type
                   </button>
                 </div>
               )}
 
-              {/* =================================================
-                  CATEGORY
-              ================================================= */}
+              {/* CATEGORY */}
 
               <label>
                 Category
+
                 <select
-                  value={form.category}
+                  value={
+                    form.category
+                  }
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      category: e.target.value,
-                    })
+                    updateForm(
+                      "category",
+                      e.target
+                        .value,
+                    )
                   }
                   required
                 >
-                  <option value="">Select category</option>
+                  <option value="">
+                    Select category
+                  </option>
 
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
+                  {categories.map(
+                    (
+                      category,
+                    ) => (
+                      <option
+                        key={
+                          category._id
+                        }
+                        value={
+                          category._id
+                        }
+                      >
+                        {
+                          category.name
+                        }
+                      </option>
+                    ),
+                  )}
                 </select>
               </label>
 
-              {/* =================================================
-                  BARCODE
-              ================================================= */}
+              {/* BARCODE */}
 
               <label>
                 Barcode
+
                 <input
-                  value={form.barcode}
+                  value={
+                    form.barcode
+                  }
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      barcode: e.target.value,
-                    })
+                    updateForm(
+                      "barcode",
+                      e.target
+                        .value,
+                    )
                   }
                   placeholder="For billing software reference"
+                  maxLength={100}
+                  inputMode="numeric"
                 />
               </label>
 
-              {/* =================================================
-                  DESCRIPTION
-              ================================================= */}
+              {/* DESCRIPTION */}
 
-              <label>
+              <label className="form-full">
                 Description
+
                 <textarea
                   rows={3}
-                  value={form.description}
-                  onChange={(e) =>
-                    setForm({
-                      ...form,
-                      description: e.target.value,
-                    })
+                  value={
+                    form.description
                   }
+                  onChange={(e) =>
+                    updateForm(
+                      "description",
+                      e.target
+                        .value,
+                    )
+                  }
+                  maxLength={1000}
                 />
               </label>
 
-              {/* =================================================
-                  IMAGE
-              ================================================= */}
+              {/* IMAGE */}
 
-              <div className="product-image-upload">
-                <label className="form-label">Product image</label>
+              <div className="product-image-upload form-full">
+                <label className="form-label">
+                  Product image
+                </label>
 
                 <div className="image-upload-options">
-                  {/* TAKE PHOTO */}
                   <button
                     type="button"
                     className="image-upload-option"
-                    onClick={openCamera}
+                    onClick={
+                      openCamera
+                    }
                   >
-                    <span className="image-upload-icon">📷</span>
+                    <span className="image-upload-icon">
+                      📷
+                    </span>
 
                     <span>
-                      <strong>Take Photo</strong>
-                      <small>Use camera</small>
+                      <strong>
+                        Take Photo
+                      </strong>
+
+                      <small>
+                        Use camera
+                      </small>
                     </span>
                   </button>
 
-                  {/* CHOOSE IMAGE */}
                   <button
                     type="button"
                     className="image-upload-option"
-                    onClick={() => fileInputRef.current?.click()}
+                    onClick={() =>
+                      fileInputRef.current?.click()
+                    }
                   >
-                    <span className="image-upload-icon">🖼️</span>
+                    <span className="image-upload-icon">
+                      🖼️
+                    </span>
 
                     <span>
-                      <strong>Choose Image</strong>
-                      <small>From device</small>
+                      <strong>
+                        Choose Image
+                      </strong>
+
+                      <small>
+                        From device
+                      </small>
                     </span>
                   </button>
                 </div>
 
-                {/* NORMAL FILE PICKER */}
                 <input
-                  ref={fileInputRef}
+                  ref={
+                    fileInputRef
+                  }
                   type="file"
-                  accept="image/*"
-                  onChange={handleImageChange}
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={
+                    handleImageChange
+                  }
                   hidden
                 />
 
-                {/* IMAGE PREVIEW */}
                 {imagePreview && (
                   <div className="image-preview">
-                    <img src={imagePreview} alt="Product preview" />
+                    <img
+                      src={
+                        imagePreview
+                      }
+                      alt="Product preview"
+                    />
 
                     <button
                       type="button"
-                      onClick={() => {
-                        setImageFile(null);
-                        setImagePreview("");
-                      }}
+                      onClick={
+                        removeImage
+                      }
                     >
                       Remove
                     </button>
@@ -1619,40 +2264,48 @@ export default function AdminProducts() {
                 )}
               </div>
 
-              {/* =================================================
-                  ACTIVE
-              ================================================= */}
+              {/* ACTIVE */}
 
               <label className="form-grid-check">
                 <input
                   type="checkbox"
-                  checked={form.active}
+                  checked={
+                    form.active
+                  }
                   onChange={(e) =>
-                    setForm({
-                      ...form,
-                      active: e.target.checked,
-                    })
+                    updateForm(
+                      "active",
+                      e.target
+                        .checked,
+                    )
                   }
                 />
+
                 Active
               </label>
 
-              {/* =================================================
-                  ERROR
-              ================================================= */}
+              {/* ERROR */}
 
-              {error && <p className="field-error">{error}</p>}
+              {error && (
+                <p
+                  className="field-error form-full"
+                  role="alert"
+                >
+                  {error}
+                </p>
+              )}
             </div>
 
-            {/* =================================================
-                MODAL ACTIONS
-            ================================================= */}
+            {/* ACTIONS */}
 
             <div className="modal-actions">
               <button
                 type="button"
                 className="btn btn-outline"
-                onClick={() => setModal(null)}
+                onClick={
+                  closeModal
+                }
+                disabled={saving}
               >
                 Cancel
               </button>
@@ -1662,68 +2315,96 @@ export default function AdminProducts() {
                 className="btn btn-primary"
                 disabled={saving}
               >
-                {saving ? "Saving…" : "Save"}
+                {saving
+                  ? "Saving…"
+                  : "Save"}
               </button>
             </div>
           </form>
 
-          {/* =========================================================
-    CAMERA MODAL
-========================================================= */}
+          {/* ===================================================
+              CAMERA MODAL
+          =================================================== */}
 
           {cameraOpen && (
-            <div className="camera-modal-backdrop" onClick={closeCamera}>
+            <div
+              className="camera-modal-backdrop"
+              onMouseDown={(e) => {
+                if (
+                  e.target ===
+                  e.currentTarget
+                ) {
+                  closeCamera();
+                }
+              }}
+            >
               <div
                 className="camera-modal"
-                onClick={(e) => e.stopPropagation()}
+                onMouseDown={(e) =>
+                  e.stopPropagation()
+                }
               >
-                {/* HEADER */}
-
                 <div className="camera-modal-header">
                   <div>
-                    <h3>Take Product Photo</h3>
-                    <p>Position the product inside the frame</p>
+                    <h3>
+                      Take Product
+                      Photo
+                    </h3>
+
+                    <p>
+                      Position the
+                      product inside
+                      the frame
+                    </p>
                   </div>
 
                   <button
                     type="button"
                     className="camera-close-btn"
-                    onClick={closeCamera}
+                    onClick={
+                      closeCamera
+                    }
                     aria-label="Close camera"
                   >
                     ×
                   </button>
                 </div>
 
-                {/* CAMERA */}
-
                 <div className="camera-preview-container">
                   <video
-                    ref={cameraVideoRef}
+                    ref={
+                      cameraVideoRef
+                    }
                     autoPlay
                     playsInline
                     muted
                     className="camera-video"
                   />
 
-                  {/* CAMERA FRAME */}
-
-                  <div className="camera-frame" aria-hidden="true" />
-
-                  {/* ERROR */}
+                  <div
+                    className="camera-frame"
+                    aria-hidden="true"
+                  />
 
                   {cameraError && (
-                    <div className="camera-error">{cameraError}</div>
+                    <div
+                      className="camera-error"
+                      role="alert"
+                    >
+                      {
+                        cameraError
+                      }
+                    </div>
                   )}
                 </div>
-
-                {/* CONTROLS */}
 
                 <div className="camera-controls">
                   <button
                     type="button"
                     className="btn btn-outline"
-                    onClick={closeCamera}
+                    onClick={
+                      closeCamera
+                    }
                   >
                     Cancel
                   </button>
@@ -1731,17 +2412,22 @@ export default function AdminProducts() {
                   <button
                     type="button"
                     className="camera-capture-btn"
-                    onClick={capturePhoto}
-                    disabled={!!cameraError}
+                    onClick={
+                      capturePhoto
+                    }
+                    disabled={
+                      !!cameraError
+                    }
                   >
-                    <span>●</span>
+                    <span>
+                      ●
+                    </span>
                     Capture Photo
                   </button>
                 </div>
               </div>
             </div>
           )}
-          
         </div>
       )}
     </div>

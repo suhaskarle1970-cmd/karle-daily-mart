@@ -1,91 +1,238 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import api from "../../services/api";
 import { useDepartments } from "../../hooks/useDepartments";
 import "./admin.css";
 
+const INITIAL_FORM = {
+  name: "",
+  department: "",
+  active: true,
+};
+
 export default function AdminCategories() {
-  const { departments } = useDepartments();
+  const { departments = [] } = useDepartments();
+
   const [categories, setCategories] = useState([]);
   const [status, setStatus] = useState("loading");
+
   const [modal, setModal] = useState(null);
-  const [name, setName] = useState("");
-  const [department, setDepartment] = useState("");
-  const [active, setActive] = useState(true);
+  const [form, setForm] = useState(INITIAL_FORM);
+
   const [error, setError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    load();
+  /*
+   * ============================================================
+   * LOAD CATEGORIES
+   * ============================================================
+   */
+
+  const loadCategories = useCallback(async () => {
+    setStatus("loading");
+
+    try {
+      const { data } = await api.get("/categories", {
+        params: {
+          includeInactive: true,
+        },
+      });
+
+      setCategories(
+        Array.isArray(data?.categories)
+          ? data.categories
+          : [],
+      );
+
+      setStatus("ready");
+    } catch (err) {
+      console.error("Failed to load categories:", err);
+      setStatus("error");
+    }
   }, []);
 
-  function load() {
-    setStatus("loading");
-    api
-      .get("/categories", { params: { includeInactive: true } })
-      .then(({ data }) => {
-        setCategories(data.categories);
-        setStatus("ready");
-      })
-      .catch(() => setStatus("error"));
-  }
+  useEffect(() => {
+    loadCategories();
+  }, [loadCategories]);
 
-  function departmentLabel(id) {
-    return departments.find((d) => d.id === id)?.label || "—";
+  /*
+   * ============================================================
+   * DEPARTMENT LOOKUP
+   * ============================================================
+   */
+
+  const departmentLabels = departments.reduce(
+    (map, department) => {
+      map[department.id] = department.label;
+      return map;
+    },
+    {},
+  );
+
+  /*
+   * ============================================================
+   * MODAL HELPERS
+   * ============================================================
+   */
+
+  function closeModal() {
+    if (saving) return;
+
+    setModal(null);
+    setError("");
   }
 
   function openCreate() {
-    setName("");
-    setDepartment("");
-    setActive(true);
+    setForm({
+      ...INITIAL_FORM,
+    });
+
     setError("");
-    setModal({ mode: "create" });
+
+    setModal({
+      mode: "create",
+    });
   }
 
-  function openEdit(cat) {
-    setName(cat.name);
-    setDepartment(cat.department || "");
-    setActive(cat.active);
+  function openEdit(category) {
+    setForm({
+      name: category.name || "",
+      department: category.department || "",
+      active: Boolean(category.active),
+    });
+
     setError("");
-    setModal({ mode: "edit", data: cat });
+
+    setModal({
+      mode: "edit",
+      data: category,
+    });
   }
 
-  async function handleSave(e) {
-    e.preventDefault();
+  /*
+   * ============================================================
+   * FORM HANDLING
+   * ============================================================
+   */
+
+  function updateForm(field, value) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+  }
+
+  /*
+   * ============================================================
+   * SAVE CATEGORY
+   * ============================================================
+   */
+
+  async function handleSave(event) {
+    event.preventDefault();
+
+    const trimmedName = form.name.trim();
+
+    if (!trimmedName) {
+      setError("Category name is required.");
+      return;
+    }
+
+    if (saving || !modal) {
+      return;
+    }
+
     setSaving(true);
     setError("");
+
+    const payload = {
+      name: trimmedName,
+      active: form.active,
+      department: form.department || null,
+    };
+
     try {
       if (modal.mode === "create") {
-        await api.post("/categories", { name, active, department: department || null });
+        await api.post("/categories", payload);
       } else {
-        await api.put(`/categories/${modal.data._id}`, { name, active, department: department || null });
+        await api.put(
+          `/categories/${modal.data._id}`,
+          payload,
+        );
       }
+
       setModal(null);
-      load();
+      setForm({ ...INITIAL_FORM });
+
+      await loadCategories();
     } catch (err) {
-      setError(err.response?.data?.message || "Could not save category.");
+      console.error("Failed to save category:", err);
+
+      setError(
+        err.response?.data?.message ||
+          "Could not save category.",
+      );
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleDelete(cat) {
-    if (!window.confirm(`Delete category "${cat.name}"?`)) return;
+  /*
+   * ============================================================
+   * DELETE CATEGORY
+   * ============================================================
+   */
+
+  async function handleDelete(category) {
+    const confirmed = window.confirm(
+      `Delete category "${category.name}"?`,
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
     try {
-      await api.delete(`/categories/${cat._id}`);
-      load();
+      await api.delete(`/categories/${category._id}`);
+
+      await loadCategories();
     } catch (err) {
-      alert(err.response?.data?.message || "Could not delete category.");
+      console.error("Failed to delete category:", err);
+
+      window.alert(
+        err.response?.data?.message ||
+          "Could not delete category.",
+      );
     }
   }
 
+  /*
+   * ============================================================
+   * RENDER
+   * ============================================================
+   */
+
   return (
     <div>
+      {/* ======================================================
+          PAGE HEADER
+      ====================================================== */}
+
       <div className="admin-page-header">
         <h1>Categories</h1>
-        <button className="btn btn-primary" onClick={openCreate}>
+
+        <button
+          type="button"
+          className="btn btn-primary"
+          onClick={openCreate}
+          disabled={saving}
+        >
           + Add category
         </button>
       </div>
+
+      {/* ======================================================
+          DESCRIPTION
+      ====================================================== */}
 
       <p
         style={{
@@ -101,11 +248,27 @@ export default function AdminCategories() {
         Products page.
       </p>
 
+      {/* ======================================================
+          CATEGORY TABLE
+      ====================================================== */}
+
       <div className="admin-card">
         {status === "loading" && <p>Loading…</p>}
 
         {status === "error" && (
-          <p className="field-error">Couldn't load categories.</p>
+          <div>
+            <p className="field-error">
+              Couldn't load categories.
+            </p>
+
+            <button
+              type="button"
+              className="btn btn-outline"
+              onClick={loadCategories}
+            >
+              Retry
+            </button>
+          </div>
         )}
 
         {status === "ready" && (
@@ -113,46 +276,75 @@ export default function AdminCategories() {
             <table className="admin-table">
               <thead>
                 <tr>
-                  <th>Name</th>
-                  <th>Department</th>
-                  <th>Status</th>
-                  <th></th>
+                  <th scope="col">Name</th>
+                  <th scope="col">Department</th>
+                  <th scope="col">Status</th>
+                  <th scope="col">Actions</th>
                 </tr>
               </thead>
 
               <tbody>
-                {categories.map((c) => (
-                  <tr key={c._id}>
-                    <td>{c.name}</td>
+                {categories.map((category) => (
+                  <tr key={category._id}>
+                    {/* NAME */}
+
+                    <td>{category.name}</td>
+
+                    {/* DEPARTMENT */}
 
                     <td>
-                      {c.department ? (
-                        departmentLabel(c.department)
+                      {category.department ? (
+                        departmentLabels[category.department] ||
+                        "Unknown"
                       ) : (
-                        <span style={{ color: "var(--color-text-muted)" }}>
+                        <span
+                          style={{
+                            color:
+                              "var(--color-text-muted)",
+                          }}
+                        >
                           Unassigned
                         </span>
                       )}
                     </td>
 
+                    {/* STATUS */}
+
                     <td>
                       <span
                         className={`badge ${
-                          c.active ? "badge-active" : "badge-inactive"
+                          category.active
+                            ? "badge-active"
+                            : "badge-inactive"
                         }`}
                       >
-                        {c.active ? "Active" : "Inactive"}
+                        {category.active
+                          ? "Active"
+                          : "Inactive"}
                       </span>
                     </td>
 
+                    {/* ACTIONS */}
+
                     <td>
-                      <button className="icon-btn" onClick={() => openEdit(c)}>
+                      <button
+                        type="button"
+                        className="icon-btn"
+                        onClick={() =>
+                          openEdit(category)
+                        }
+                        disabled={saving}
+                      >
                         Edit
                       </button>
 
                       <button
+                        type="button"
                         className="icon-btn danger"
-                        onClick={() => handleDelete(c)}
+                        onClick={() =>
+                          handleDelete(category)
+                        }
+                        disabled={saving}
                       >
                         Delete
                       </button>
@@ -162,7 +354,9 @@ export default function AdminCategories() {
 
                 {categories.length === 0 && (
                   <tr>
-                    <td colSpan={4}>No categories yet.</td>
+                    <td colSpan={4}>
+                      No categories yet.
+                    </td>
                   </tr>
                 )}
               </tbody>
@@ -171,64 +365,142 @@ export default function AdminCategories() {
         )}
       </div>
 
+      {/* ======================================================
+          CREATE / EDIT MODAL
+      ====================================================== */}
+
       {modal && (
-        <div className="modal-backdrop" onClick={() => setModal(null)}>
+        <div
+          className="modal-backdrop"
+          onMouseDown={(event) => {
+            if (
+              event.target === event.currentTarget
+            ) {
+              closeModal();
+            }
+          }}
+        >
           <form
             className="modal-card"
-            onClick={(e) => e.stopPropagation()}
             onSubmit={handleSave}
+            onMouseDown={(event) =>
+              event.stopPropagation()
+            }
           >
             <h2>
-              {modal.mode === "create" ? "Add category" : "Edit category"}
+              {modal.mode === "create"
+                ? "Add category"
+                : "Edit category"}
             </h2>
+
             <div className="form-grid">
+              {/* CATEGORY NAME */}
+
               <label>
                 Name
+
                 <input
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
+                  type="text"
+                  value={form.name}
+                  onChange={(event) =>
+                    updateForm(
+                      "name",
+                      event.target.value,
+                    )
+                  }
                   required
+                  autoFocus
+                  maxLength={100}
                   placeholder="e.g. Cooking Oil"
+                  disabled={saving}
                 />
               </label>
+
+              {/* DEPARTMENT */}
+
               <label>
                 Department
+
                 <select
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
+                  value={form.department}
+                  onChange={(event) =>
+                    updateForm(
+                      "department",
+                      event.target.value,
+                    )
+                  }
+                  disabled={saving}
                 >
-                  <option value="">Unassigned</option>
-                  {departments.map((d) => (
-                    <option key={d.id} value={d.id}>
-                      {d.label}
+                  <option value="">
+                    Unassigned
+                  </option>
+
+                  {departments.map((department) => (
+                    <option
+                      key={department.id}
+                      value={department.id}
+                    >
+                      {department.label}
                     </option>
                   ))}
                 </select>
               </label>
+
+              {/* ACTIVE */}
+
               <label className="form-grid-check">
                 <input
                   type="checkbox"
-                  checked={active}
-                  onChange={(e) => setActive(e.target.checked)}
+                  checked={form.active}
+                  onChange={(event) =>
+                    updateForm(
+                      "active",
+                      event.target.checked,
+                    )
+                  }
+                  disabled={saving}
                 />
+
                 Active
               </label>
-              {error && <p className="field-error">{error}</p>}
+
+              {/* ERROR */}
+
+              {error && (
+                <p
+                  className="field-error"
+                  role="alert"
+                >
+                  {error}
+                </p>
+              )}
             </div>
+
+            {/* ==================================================
+                MODAL ACTIONS
+            ================================================== */}
+
             <div className="modal-actions">
               <button
                 type="button"
                 className="btn btn-outline"
-                onClick={() => setModal(null)}
+                onClick={closeModal}
+                disabled={saving}
               >
                 Cancel
               </button>
+
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={saving}
+                disabled={
+                  saving ||
+                  !form.name.trim()
+                }
               >
-                {saving ? "Saving…" : "Save"}
+                {saving
+                  ? "Saving…"
+                  : "Save"}
               </button>
             </div>
           </form>

@@ -1,82 +1,145 @@
+import { memo, useCallback } from "react";
 import { Link } from "react-router-dom";
+
 import { formatCurrency } from "../utils/format";
 import { useCart } from "../context/CartContext";
+
 import "./ProductCard.css";
 
+/* ============================================================
+   CONSTANTS
+============================================================ */
+
+const CLOUDINARY_HOST = "res.cloudinary.com";
+
+/* ============================================================
+   CLOUDINARY IMAGE OPTIMIZATION
+============================================================ */
+
 function getOptimizedImageUrl(url, width = 400) {
-  if (!url || !url.includes("res.cloudinary.com")) {
+  if (!url || !url.includes(CLOUDINARY_HOST)) {
     return url;
   }
 
-  return url.replace("/upload/", `/upload/f_auto,q_auto,w_${width},c_limit/`);
+  return url.replace(
+    "/upload/",
+    `/upload/f_auto,q_auto,w_${width},c_limit/`,
+  );
 }
 
-export default function ProductCard({ product }) {
+/* ============================================================
+   CHEAPEST STANDARD VARIANT
+============================================================ */
+
+function getCheapestVariant(variants) {
+  if (!Array.isArray(variants) || variants.length === 0) {
+    return null;
+  }
+
+  let cheapest = variants[0];
+  let cheapestPrice = Number(cheapest?.price ?? Infinity);
+
+  for (let i = 1; i < variants.length; i += 1) {
+    const variant = variants[i];
+    const price = Number(variant?.price ?? Infinity);
+
+    if (price < cheapestPrice) {
+      cheapest = variant;
+      cheapestPrice = price;
+    }
+  }
+
+  return cheapest;
+}
+
+/* ============================================================
+   CHEAPEST TYPE-BASED SIZE
+   ------------------------------------------------------------
+   Finds the cheapest size across all product types in one pass.
+
+   Instead of:
+     types
+       -> flatMap
+       -> create new objects
+       -> reduce
+
+   we directly inspect the sizes.
+============================================================ */
+
+function getCheapestTypeSize(types) {
+  if (!Array.isArray(types) || types.length === 0) {
+    return null;
+  }
+
+  let cheapest = null;
+  let cheapestPrice = Infinity;
+
+  for (const type of types) {
+    if (!Array.isArray(type?.sizes)) {
+      continue;
+    }
+
+    for (const size of type.sizes) {
+      const price = Number(size?.price ?? Infinity);
+
+      if (price < cheapestPrice) {
+        cheapestPrice = price;
+
+        cheapest = {
+          ...size,
+          typeName: type.name,
+        };
+      }
+    }
+  }
+
+  return cheapest;
+}
+
+/* ============================================================
+   PRODUCT CARD
+============================================================ */
+
+function ProductCard({ product }) {
   const { addItem } = useCart();
 
-  // ============================================================
-  // PRODUCT TYPE DETECTION
-  // ============================================================
+  /* ============================================================
+     PRODUCT TYPE DETECTION
+  ============================================================ */
 
   const isTypeBased =
     product.pricingType === "type-based" &&
     Array.isArray(product.types) &&
     product.types.length > 0;
 
-  // ============================================================
-  // STANDARD VARIANTS
-  // ============================================================
+  /* ============================================================
+     STANDARD VARIANTS
+  ============================================================ */
 
   const hasVariants =
     !isTypeBased &&
     Array.isArray(product.variants) &&
     product.variants.length > 0;
 
-  // ============================================================
-  // TYPE-BASED SIZES
-  // ============================================================
-
-  const typeBasedSizes = isTypeBased
-    ? product.types.flatMap((type) =>
-        Array.isArray(type.sizes)
-          ? type.sizes.map((size) => ({
-              ...size,
-              typeName: type.name,
-            }))
-          : [],
-      )
-    : [];
-
-  // ============================================================
-  // CHEAPEST STANDARD VARIANT
-  // ============================================================
+  /* ============================================================
+     CHEAPEST VARIANT
+  ============================================================ */
 
   const cheapestVariant = hasVariants
-    ? product.variants.reduce((min, variant) => {
-        const minPrice = Number(min?.price ?? Infinity);
-        const currentPrice = Number(variant?.price ?? Infinity);
-
-        return currentPrice < minPrice ? variant : min;
-      }, product.variants[0])
+    ? getCheapestVariant(product.variants)
     : null;
 
-  // ============================================================
-  // CHEAPEST TYPE-BASED SIZE
-  // ============================================================
+  /* ============================================================
+     CHEAPEST TYPE-BASED SIZE
+  ============================================================ */
 
-  const cheapestTypeSize =
-    isTypeBased && typeBasedSizes.length > 0
-      ? typeBasedSizes.reduce((min, size) => {
-          const minPrice = Number(min?.price ?? Infinity);
-          const currentPrice = Number(size?.price ?? Infinity);
+  const cheapestTypeSize = isTypeBased
+    ? getCheapestTypeSize(product.types)
+    : null;
 
-          return currentPrice < minPrice ? size : min;
-        }, typeBasedSizes[0])
-      : null;
-
-  // ============================================================
-  // DISPLAY PRICE
-  // ============================================================
+  /* ============================================================
+     DISPLAY PRICE
+  ============================================================ */
 
   let displayPrice = Number(product.price ?? 0);
   let displayMrp = Number(product.mrp ?? 0);
@@ -84,7 +147,10 @@ export default function ProductCard({ product }) {
   let displaySize = null;
   let displayType = null;
 
-  // TYPE-BASED PRODUCT
+  /* ============================================================
+     TYPE-BASED PRODUCT
+  ============================================================ */
+
   if (isTypeBased && cheapestTypeSize) {
     displayPrice = Number(cheapestTypeSize.price ?? 0);
     displayMrp = Number(cheapestTypeSize.mrp ?? 0);
@@ -93,7 +159,10 @@ export default function ProductCard({ product }) {
     displayType = cheapestTypeSize.typeName;
   }
 
-  // STANDARD PRODUCT WITH VARIANTS
+  /* ============================================================
+     STANDARD PRODUCT WITH VARIANTS
+  ============================================================ */
+
   else if (hasVariants && cheapestVariant) {
     displayPrice = Number(cheapestVariant.price ?? 0);
     displayMrp = Number(cheapestVariant.mrp ?? 0);
@@ -101,37 +170,48 @@ export default function ProductCard({ product }) {
     displaySize = cheapestVariant;
   }
 
-  // ============================================================
-  // DISCOUNT
-  // ============================================================
+  /* ============================================================
+     DISCOUNT
+  ============================================================ */
 
-  const hasDiscount = displayMrp > displayPrice && displayMrp > 0;
+  const hasDiscount =
+    displayMrp > displayPrice &&
+    displayMrp > 0;
 
   const discountPct = hasDiscount
-    ? Math.round(((displayMrp - displayPrice) / displayMrp) * 100)
+    ? Math.round(
+        ((displayMrp - displayPrice) /
+          displayMrp) *
+          100,
+      )
     : 0;
 
-  // ============================================================
-  // PRODUCT REQUIRES OPTIONS
-  // ============================================================
+  /* ============================================================
+     PRODUCT REQUIRES OPTIONS
+  ============================================================ */
 
-  const requiresSelection = isTypeBased || hasVariants;
+  const requiresSelection =
+    isTypeBased || hasVariants;
 
-  // ============================================================
-  // DIRECT ADD TO CART
-  // ============================================================
+  /* ============================================================
+     DIRECT ADD TO CART
+  ============================================================ */
 
-  function handleAdd() {
+  const handleAdd = useCallback(() => {
     if (requiresSelection) {
       return;
     }
 
     addItem(product, 1, null, null);
-  }
+  }, [
+    addItem,
+    product,
+    requiresSelection,
+  ]);
 
-  // ============================================================
-  // RENDER
-  // ============================================================
+  /* ============================================================
+     RENDER
+  ============================================================ */
 
   return (
     <article className="product-card">
@@ -140,25 +220,42 @@ export default function ProductCard({ product }) {
       <div className="product-card-img-wrap">
         {product.imageUrl ? (
           <img
-            src={getOptimizedImageUrl(product.imageUrl, 400)}
+            src={getOptimizedImageUrl(
+              product.imageUrl,
+              400,
+            )}
             srcSet={`
-    ${getOptimizedImageUrl(product.imageUrl, 300)} 300w,
-    ${getOptimizedImageUrl(product.imageUrl, 400)} 400w,
-    ${getOptimizedImageUrl(product.imageUrl, 600)} 600w
-  `}
+              ${getOptimizedImageUrl(
+                product.imageUrl,
+                300,
+              )} 300w,
+              ${getOptimizedImageUrl(
+                product.imageUrl,
+                400,
+              )} 400w,
+              ${getOptimizedImageUrl(
+                product.imageUrl,
+                600,
+              )} 600w
+            `}
             sizes="(max-width: 480px) 45vw, (max-width: 900px) 30vw, 250px"
             alt={product.name}
             loading="lazy"
             decoding="async"
           />
         ) : (
-          <div className="product-card-img-placeholder" aria-hidden="true" />
+          <div
+            className="product-card-img-placeholder"
+            aria-hidden="true"
+          />
         )}
 
         {/* DISCOUNT BADGE */}
 
         {hasDiscount && (
-          <span className="badge-discount">{discountPct}% off</span>
+          <span className="badge-discount">
+            {discountPct}% off
+          </span>
         )}
 
         {/* WISHLIST */}
@@ -177,21 +274,27 @@ export default function ProductCard({ product }) {
       <div className="product-card-body">
         {/* PRODUCT NAME */}
 
-        <Link to={`/products/${product._id}`} className="product-card-name">
+        <Link
+          to={`/products/${product._id}`}
+          className="product-card-name"
+        >
           {product.name}
         </Link>
 
         {/* CATEGORY */}
 
         {product.category?.name && (
-          <p className="product-card-desc">{product.category.name}</p>
+          <p className="product-card-desc">
+            {product.category.name}
+          </p>
         )}
 
         {/* TYPE INFORMATION */}
 
         {isTypeBased && displayType && (
           <p className="variant-preview">
-            Starting from <strong>{displayType}</strong>
+            Starting from{" "}
+            <strong>{displayType}</strong>
           </p>
         )}
 
@@ -202,12 +305,17 @@ export default function ProductCard({ product }) {
           Number(product.rating) > 0 && (
             <div className="rating-row">
               <span className="rating-pill">
-                ★ {Number(product.rating).toFixed(1)}
+                ★{" "}
+                {Number(product.rating).toFixed(1)}
               </span>
 
               {Number(product.ratingCount) > 0 && (
                 <span className="rating-count">
-                  ({Number(product.ratingCount).toLocaleString()})
+                  (
+                  {Number(
+                    product.ratingCount,
+                  ).toLocaleString()}
+                  )
                 </span>
               )}
             </div>
@@ -227,7 +335,9 @@ export default function ProductCard({ product }) {
                 {formatCurrency(displayMrp)}
               </span>
 
-              <span className="price-off">{discountPct}% off</span>
+              <span className="price-off">
+                {discountPct}% off
+              </span>
             </>
           )}
         </div>
@@ -238,7 +348,8 @@ export default function ProductCard({ product }) {
           <p className="variant-preview">
             Starting from{" "}
             <strong>
-              {displaySize.amount} {displaySize.unit}
+              {displaySize.amount}{" "}
+              {displaySize.unit}
             </strong>
           </p>
         )}
@@ -246,7 +357,8 @@ export default function ProductCard({ product }) {
         {/* DELIVERY */}
 
         <p className="offer-tag">
-          Home delivery on orders above <span>₹500</span>
+          Home delivery on orders above{" "}
+          <span>₹500</span>
         </p>
 
         {/* CTA */}
@@ -271,3 +383,12 @@ export default function ProductCard({ product }) {
     </article>
   );
 }
+
+/* ============================================================
+   MEMOIZED PRODUCT CARD
+   ------------------------------------------------------------
+   Prevents unnecessary re-renders when the parent component
+   re-renders but this product has not changed.
+============================================================ */
+
+export default memo(ProductCard);

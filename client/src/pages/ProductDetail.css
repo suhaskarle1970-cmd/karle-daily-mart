@@ -1,3 +1,7 @@
+/* =========================================================
+   PRODUCT DETAILS
+========================================================= */
+
 .pd {
   display: grid;
   grid-template-columns: 420px 1fr;
@@ -37,15 +41,52 @@
 }
 
 .pd-price {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 700;
-  color: var(--color-primary-dark-solid);
+  color: #212121;
+  line-height: 1.2;
 }
 
 .pd-description {
   color: var(--color-text-muted);
   line-height: 1.6;
   max-width: 52ch;
+}
+
+
+/* =========================================================
+   PRICE
+========================================================= */
+
+.pd-price-section {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0 18px;
+}
+
+.pd-mrp {
+  font-size: 16px;
+  font-weight: 400;
+  color: #878787;
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+}
+
+.pd-discount {
+  font-size: 15px;
+  font-weight: 600;
+  color: #388e3c;
+}
+
+
+/* =========================================================
+   VARIANTS
+========================================================= */
+
+.pd-variants {
+  margin-top: 22px;
 }
 
 .pd-variants label,
@@ -56,30 +97,94 @@
   margin-bottom: 8px;
 }
 
+.pd-variants-label {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 14px;
+  font-weight: 600;
+  color: #212121;
+}
+
 .pd-variant-options {
   display: flex;
   flex-wrap: wrap;
-  gap: 8px;
+  gap: 10px;
 }
 
 .pd-variant-btn {
-  padding: 9px 16px;
-  border: 1.5px solid var(--color-border);
-  border-radius: var(--radius-sm);
-  background: var(--color-surface);
+  min-width: 120px;
+  min-height: 78px;
+  padding: 10px 12px;
+
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 3px;
+
+  background: #fff;
+  border: 1px solid #d5d5d5;
+  border-radius: 7px;
+
+  cursor: pointer;
+  text-align: left;
+
   font-weight: 600;
   font-size: 13.5px;
+
+  transition:
+    border-color 0.15s ease,
+    background 0.15s ease,
+    box-shadow 0.15s ease,
+    transform 0.15s ease;
 }
 
 .pd-variant-btn:hover {
-  border-color: var(--color-primary);
+  border-color: #2874f0;
+  background: #f8fbff;
 }
 
 .pd-variant-btn.selected {
-  border-color: var(--color-primary);
-  background: var(--color-primary);
-  color: #fff;
+  border: 2px solid #2874f0;
+  background: #f5f9ff;
+  color: #212121;
+  box-shadow: 0 0 0 1px rgba(40, 116, 240, 0.08);
 }
+
+.pd-variant-size {
+  font-size: 14px;
+  font-weight: 600;
+  color: #212121;
+}
+
+.pd-variant-price {
+  font-size: 14px;
+  font-weight: 700;
+  color: #212121;
+}
+
+.pd-variant-price-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.pd-variant-mrp {
+  font-size: 11px;
+  color: #878787;
+  text-decoration: line-through;
+}
+
+.pd-variant-discount {
+  font-size: 11px;
+  font-weight: 600;
+  color: #388e3c;
+}
+
+
+/* =========================================================
+   QUANTITY
+========================================================= */
 
 .pd-quantity {
   margin-top: 10px;
@@ -107,6 +212,11 @@
   font-weight: 600;
 }
 
+
+/* =========================================================
+   ADD TO CART / CART LINK
+========================================================= */
+
 .pd-add {
   margin-top: 8px;
   width: fit-content;
@@ -119,155 +229,10 @@
   margin-top: 4px;
 }
 
-/* =========================================================
-   PRICE SECTION
-========================================================= */
-
-.pd-price-section {
-  display: flex;
-  align-items: baseline;
-  flex-wrap: wrap;
-  gap: 10px;
-  margin: 12px 0 18px;
-}
-
-.pd-price {
-  font-size: 28px;
-  font-weight: 700;
-  color: #212121;
-  line-height: 1.2;
-}
-
-.pd-mrp {
-  font-size: 16px;
-  font-weight: 400;
-  color: #878787;
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-}
-
-.pd-discount {
-  font-size: 15px;
-  font-weight: 600;
-  color: #388e3c;
-}
-
-
-/* =========================================================
-   VARIANT OPTIONS
-========================================================= */
-
-.pd-variants {
-  margin-top: 22px;
-}
-
-.pd-variants-label {
-  display: block;
-  margin-bottom: 10px;
-
-  font-size: 14px;
-  font-weight: 600;
-  color: #212121;
-}
-
-.pd-variant-options {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 10px;
-}
-
-/* Individual size */
-
-.pd-variant-btn {
-  min-width: 120px;
-  min-height: 78px;
-
-  padding: 10px 12px;
-
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  justify-content: center;
-
-  gap: 3px;
-
-  background: #fff;
-  border: 1px solid #d5d5d5;
-  border-radius: 7px;
-
-  cursor: pointer;
-  text-align: left;
-
-  transition:
-    border-color 0.15s ease,
-    background 0.15s ease,
-    box-shadow 0.15s ease,
-    transform 0.15s ease;
-}
-
-.pd-variant-btn:hover {
-  border-color: #2874f0;
-  background: #f8fbff;
-}
-
-/* SELECTED SIZE */
-
-.pd-variant-btn.selected {
-  border: 2px solid #2874f0;
-  background: #f5f9ff;
-
-  box-shadow: 0 0 0 1px rgba(40, 116, 240, 0.08);
-}
-
-/* SIZE */
-
-.pd-variant-size {
-  font-size: 14px;
-  font-weight: 600;
-  color: #212121;
-}
-
-/* SELLING PRICE */
-
-.pd-variant-price {
-  font-size: 14px;
-  font-weight: 700;
-  color: #212121;
-}
-
-/* MRP + DISCOUNT */
-
-.pd-variant-price-row {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.pd-variant-mrp {
-  font-size: 11px;
-  color: #878787;
-  text-decoration: line-through;
-}
-
-.pd-variant-discount {
-  font-size: 11px;
-  font-weight: 600;
-  color: #388e3c;
-}
-
-
-/* =========================================================
-   MOBILE
-========================================================= */
-
-/* =========================================================
-   RESPONSIVE — PRODUCT DETAILS
-   Existing styling preserved
-========================================================= */
-
 
 /* =========================================================
    LARGE TABLET / SMALL LAPTOP
+   ≤ 1100px
 ========================================================= */
 
 @media (max-width: 1100px) {
@@ -300,6 +265,7 @@
 
 /* =========================================================
    TABLET
+   ≤ 900px
 ========================================================= */
 
 @media (max-width: 900px) {
@@ -350,6 +316,7 @@
 
 /* =========================================================
    TABLET PORTRAIT / LARGE MOBILE
+   ≤ 760px
 ========================================================= */
 
 @media (max-width: 760px) {
@@ -385,6 +352,7 @@
 
 /* =========================================================
    MOBILE
+   ≤ 640px
 ========================================================= */
 
 @media (max-width: 640px) {
@@ -434,10 +402,7 @@
     line-height: 1.55;
   }
 
-
-  /* -------------------------
-     VARIANTS
-  ------------------------- */
+  /* VARIANTS */
 
   .pd-variants {
     margin-top: 18px;
@@ -458,7 +423,6 @@
     width: 100%;
     min-width: 0;
     min-height: 70px;
-
     padding: 9px 10px;
   }
 
@@ -480,10 +444,7 @@
     font-size: 10px;
   }
 
-
-  /* -------------------------
-     QUANTITY
-  ------------------------- */
+  /* QUANTITY */
 
   .pd-quantity {
     margin-top: 8px;
@@ -498,17 +459,12 @@
     width: 42px;
   }
 
-
-  /* -------------------------
-     ADD TO CART
-  ------------------------- */
+  /* ADD TO CART */
 
   .pd-add {
     width: 100%;
     max-width: none;
-
     margin-top: 8px;
-
     padding: 13px 20px;
   }
 
@@ -521,6 +477,7 @@
 
 /* =========================================================
    SMALL MOBILE
+   ≤ 480px
 ========================================================= */
 
 @media (max-width: 480px) {
@@ -593,6 +550,7 @@
 
 /* =========================================================
    VERY SMALL PHONES
+   ≤ 360px
 ========================================================= */
 
 @media (max-width: 360px) {
@@ -622,10 +580,7 @@
     padding: 7px;
   }
 
-  .pd-variant-size {
-    font-size: 11.5px;
-  }
-
+  .pd-variant-size,
   .pd-variant-price {
     font-size: 11.5px;
   }

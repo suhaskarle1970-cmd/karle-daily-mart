@@ -28,7 +28,7 @@ export default function AdminLogin() {
     <div className="admin-login-page">
       <form className="admin-login-card" onSubmit={handleSubmit}>
         <h1>Admin Login</h1>
-        <p className="admin-login-sub">Karke Daily Mart</p>
+        <p className="admin-login-sub">Daily Mart Super Market</p>
 
         <label>
           Email

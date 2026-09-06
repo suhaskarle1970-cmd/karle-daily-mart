@@ -4,10 +4,48 @@ import { formatCurrency } from "../utils/format";
 import { EmptyState } from "../components/States";
 import "./Cart.css";
 
+// ============================================================
+// HELPERS
+// ============================================================
+
+function getDiscountInfo(price, mrp) {
+  const itemPrice = Number(price || 0);
+  const itemMrp = Number(mrp || 0);
+
+  const hasDiscount =
+    itemMrp > itemPrice && itemMrp > 0;
+
+  const discountPct = hasDiscount
+    ? Math.round(
+        ((itemMrp - itemPrice) / itemMrp) * 100,
+      )
+    : 0;
+
+  return {
+    itemPrice,
+    itemMrp,
+    hasDiscount,
+    discountPct,
+  };
+}
+
+// ============================================================
+// CART PAGE
+// ============================================================
+
 export default function Cart() {
-  const { items, updateQuantity, removeItem, totalAmount } = useCart();
+  const {
+    items,
+    updateQuantity,
+    removeItem,
+    totalAmount,
+  } = useCart();
 
   const navigate = useNavigate();
+
+  // ==========================================================
+  // EMPTY CART
+  // ==========================================================
 
   if (items.length === 0) {
     return (
@@ -18,7 +56,10 @@ export default function Cart() {
         />
 
         <div style={{ textAlign: "center" }}>
-          <Link to="/products" className="btn btn-primary">
+          <Link
+            to="/products"
+            className="btn btn-primary"
+          >
             Continue shopping
           </Link>
         </div>
@@ -26,13 +67,19 @@ export default function Cart() {
     );
   }
 
+  // ==========================================================
+  // RENDER
+  // ==========================================================
+
   return (
     <div className="container section cart-page">
       {/* =====================================================
           TITLE
       ===================================================== */}
 
-      <h1 className="cart-title">Your cart</h1>
+      <h1 className="cart-title">
+        Your cart
+      </h1>
 
       {/* =====================================================
           CART ITEMS
@@ -40,27 +87,37 @@ export default function Cart() {
 
       <div className="cart-list">
         {items.map((item) => {
-
-          const itemPrice = Number(item.price || 0);
-          const itemMrp = Number(item.mrp || 0);
-
-          const hasDiscount = itemMrp > itemPrice && itemMrp > 0;
-
-          const discountPct = hasDiscount
-            ? Math.round(((itemMrp - itemPrice) / itemMrp) * 100)
-            : 0;
+          const {
+            itemPrice,
+            itemMrp,
+            hasDiscount,
+            discountPct,
+          } = getDiscountInfo(
+            item.price,
+            item.mrp,
+          );
 
           return (
-            <div key={item.lineKey} className="cart-row">
+            <div
+              key={item.lineKey}
+              className="cart-row"
+            >
               {/* =================================================
                   IMAGE
               ================================================= */}
 
               <div className="cart-row-image">
                 {item.imageUrl ? (
-                  <img src={item.imageUrl} alt={item.name} />
+                  <img
+                    src={item.imageUrl}
+                    alt={item.name}
+                    loading="lazy"
+                    decoding="async"
+                  />
                 ) : (
-                  <div className="product-card-image-placeholder">No image</div>
+                  <div className="product-card-image-placeholder">
+                    No image
+                  </div>
                 )}
               </div>
 
@@ -73,11 +130,15 @@ export default function Cart() {
                   <div>{item.name}</div>
 
                   {item.type && (
-                    <div className="cart-row-variant">Type: {item.type}</div>
+                    <div className="cart-row-variant">
+                      Type: {item.type}
+                    </div>
                   )}
 
                   {item.variant && (
-                    <div className="cart-row-variant">Size: {item.variant}</div>
+                    <div className="cart-row-variant">
+                      Size: {item.variant}
+                    </div>
                   )}
                 </div>
 
@@ -101,7 +162,9 @@ export default function Cart() {
                   )}
                 </div>
 
-                <span className="cart-row-each">each</span>
+                <span className="cart-row-each">
+                  each
+                </span>
               </div>
 
               {/* =================================================
@@ -112,7 +175,10 @@ export default function Cart() {
                 <button
                   type="button"
                   onClick={() =>
-                    updateQuantity(item.lineKey, item.quantity - 1)
+                    updateQuantity(
+                      item.lineKey,
+                      item.quantity - 1,
+                    )
                   }
                   aria-label="Decrease quantity"
                 >
@@ -124,7 +190,10 @@ export default function Cart() {
                 <button
                   type="button"
                   onClick={() =>
-                    updateQuantity(item.lineKey, item.quantity + 1)
+                    updateQuantity(
+                      item.lineKey,
+                      item.quantity + 1,
+                    )
                   }
                   aria-label="Increase quantity"
                 >
@@ -137,7 +206,9 @@ export default function Cart() {
               ================================================= */}
 
               <p className="cart-row-subtotal">
-                {formatCurrency(itemPrice * item.quantity)}
+                {formatCurrency(
+                  itemPrice * item.quantity,
+                )}
               </p>
 
               {/* =================================================
@@ -147,7 +218,9 @@ export default function Cart() {
               <button
                 type="button"
                 className="cart-row-remove"
-                onClick={() => removeItem(item.lineKey)}
+                onClick={() =>
+                  removeItem(item.lineKey)
+                }
                 aria-label={`Remove ${item.name}`}
               >
                 ✕
@@ -171,14 +244,19 @@ export default function Cart() {
         </div>
 
         <div className="cart-summary-actions">
-          <Link to="/products" className="btn btn-outline">
+          <Link
+            to="/products"
+            className="btn btn-outline"
+          >
             Continue shopping
           </Link>
 
           <button
             type="button"
             className="btn btn-primary"
-            onClick={() => navigate("/checkout")}
+            onClick={() =>
+              navigate("/checkout")
+            }
           >
             Proceed to order
           </button>

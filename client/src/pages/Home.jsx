@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
 import HeroSlider from "../components/HeroSlider";
@@ -12,6 +12,10 @@ import SpaIcon from "@mui/icons-material/Spa";
 import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 
 import "./Home.css";
+
+/* =========================================================
+   DEPARTMENTS
+========================================================= */
 
 const DEPARTMENTS = [
   {
@@ -44,12 +48,16 @@ const DEPARTMENTS = [
   },
   {
     id: "stationery",
-    label: "stationery",
-    sublabel: "Pens, Pencils, NoteBooks & office supplies",
+    label: "Stationery",
+    sublabel: "Pens, pencils, notebooks & office supplies",
     Icon: HistoryEduIcon,
     theme: "stationery",
   },
 ];
+
+/* =========================================================
+   HOME PAGE
+========================================================= */
 
 export default function Home() {
   const [slides, setSlides] = useState([]);
@@ -57,11 +65,11 @@ export default function Home() {
   const [departmentProducts, setDepartmentProducts] = useState({});
   const [status, setStatus] = useState("loading");
 
-  useEffect(() => {
-    load();
-  }, []);
+  /* =========================================================
+     LOAD HOMEPAGE DATA
+  ========================================================= */
 
-  async function load() {
+  const load = useCallback(async () => {
     setStatus("loading");
 
     try {
@@ -76,10 +84,22 @@ export default function Home() {
 
       setStatus("ready");
     } catch (error) {
-      console.error(error);
+      console.error("Failed to load homepage:", error);
       setStatus("error");
     }
-  }
+  }, []);
+
+  /* =========================================================
+     INITIAL LOAD
+  ========================================================= */
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  /* =========================================================
+     ERROR STATE
+  ========================================================= */
 
   if (status === "error") {
     return (
@@ -95,13 +115,15 @@ export default function Home() {
   return (
     <>
       {/* =====================================================
-        HERO
-    ===================================================== */}
+          HERO
+      ===================================================== */}
+
       {status === "ready" && <HeroSlider slides={slides} />}
 
       {/* =====================================================
-        FEATURED PRODUCTS
-    ===================================================== */}
+          FEATURED PRODUCTS
+      ===================================================== */}
+
       <section className="container section featured-section">
         <div className="section-heading featured-heading">
           <div className="featured-title-wrap">
@@ -122,15 +144,19 @@ export default function Home() {
         ) : (
           <div className="product-grid featured-grid">
             {featured.map((product) => (
-              <ProductCard key={product._id} product={product} />
+              <ProductCard
+                key={product._id}
+                product={product}
+              />
             ))}
           </div>
         )}
       </section>
 
       {/* =====================================================
-        DEPARTMENT SECTIONS - LOADING
-    ===================================================== */}
+          DEPARTMENT SECTIONS - LOADING
+      ===================================================== */}
+
       {status === "loading" &&
         DEPARTMENTS.map((department) => (
           <section
@@ -139,7 +165,10 @@ export default function Home() {
           >
             <div className="dept-heading">
               <div className="dept-heading-left">
-                <div className="dept-icon-wrap dept-icon-skeleton" />
+                <div
+                  className="dept-icon-wrap dept-icon-skeleton"
+                  aria-hidden="true"
+                />
 
                 <div className="dept-heading-text">
                   <div
@@ -176,15 +205,15 @@ export default function Home() {
         ))}
 
       {/* =====================================================
-        DEPARTMENT SECTIONS - PRODUCTS
-    ===================================================== */}
+          DEPARTMENT SECTIONS - PRODUCTS
+      ===================================================== */}
+
       {status === "ready" &&
         DEPARTMENTS.map((department) => {
-          const products = departmentProducts[department.id] || [];
+          const products =
+            departmentProducts[department.id] || [];
 
-          /*
-          Don't show empty departments.
-        */
+          // Don't render empty departments.
           if (products.length === 0) {
             return null;
           }
@@ -197,11 +226,13 @@ export default function Home() {
               className={`container section dept-section dept-${department.theme}`}
             >
               {/* =================================================
-                DEPARTMENT HEADER
-            ================================================= */}
+                  DEPARTMENT HEADER
+              ================================================= */}
+
               <div className="dept-heading">
                 <div className="dept-heading-left">
-                  {/* Icon */}
+                  {/* ICON */}
+
                   <div className="dept-icon-wrap">
                     <Icon
                       className="dept-icon"
@@ -210,15 +241,21 @@ export default function Home() {
                     />
                   </div>
 
-                  {/* Title + subtitle */}
-                  <div className="dept-heading-text">
-                    <h2 className="dept-label">{department.label}</h2>
+                  {/* TITLE + SUBTITLE */}
 
-                    <div className="dept-sublabel">{department.sublabel}</div>
+                  <div className="dept-heading-text">
+                    <h2 className="dept-label">
+                      {department.label}
+                    </h2>
+
+                    <div className="dept-sublabel">
+                      {department.sublabel}
+                    </div>
                   </div>
                 </div>
 
-                {/* View all */}
+                {/* VIEW ALL */}
+
                 <Link
                   to={`/products?department=${department.id}`}
                   className="dept-link"
@@ -228,11 +265,15 @@ export default function Home() {
               </div>
 
               {/* =================================================
-                DEPARTMENT PRODUCTS
-            ================================================= */}
+                  DEPARTMENT PRODUCTS
+              ================================================= */}
+
               <div className="product-grid dept-product-grid">
                 {products.map((product) => (
-                  <ProductCard key={product._id} product={product} />
+                  <ProductCard
+                    key={product._id}
+                    product={product}
+                  />
                 ))}
               </div>
             </section>

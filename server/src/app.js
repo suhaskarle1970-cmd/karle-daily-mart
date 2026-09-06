@@ -9,38 +9,140 @@ import sliderRoutes from "./routes/sliderRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import configRoutes from "./routes/configRoutes.js";
+
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
 const app = express();
 
+/* ============================================================
+   CORS
+============================================================ */
+
 app.use(
   cors({
-    origin: process.env.CLIENT_URL || "http://localhost:5173",
-    credentials: true,
-  })
-);
-app.use(express.json({ limit: "2mb" }));
+    origin:
+      process.env.CLIENT_URL ||
+      "http://localhost:5173",
 
-// Basic rate limiting on auth to slow down credential stuffing / brute force.
+    credentials: true,
+  }),
+);
+
+/* ============================================================
+   BODY PARSER
+============================================================ */
+
+app.use(
+  express.json({
+    limit: "2mb",
+  }),
+);
+
+/* ============================================================
+   AUTH RATE LIMITER
+   ------------------------------------------------------------
+   Used ONLY for login.
+
+   This protects against:
+   - brute-force attacks
+   - credential stuffing
+   - repeated password guessing
+
+   It should NOT be applied to /me because the frontend
+   legitimately calls /me when restoring an admin session.
+============================================================ */
+
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
+
   limit: 20,
+
   standardHeaders: true,
   legacyHeaders: false,
-  message: { message: "Too many login attempts. Please try again later." },
+
+  message: {
+    message:
+      "Too many login attempts. Please try again later.",
+  },
 });
 
-app.get("/api/health", (req, res) => res.json({ status: "ok" }));
+/* ============================================================
+   HEALTH CHECK
+============================================================ */
 
-app.use("/api/auth", authLimiter, authRoutes);
-app.use("/api/categories", categoryRoutes);
-app.use("/api/products", productRoutes);
-app.use("/api/sliders", sliderRoutes);
-app.use("/api/orders", orderRoutes);
-app.use("/api/dashboard", dashboardRoutes);
-app.use("/api/config", configRoutes);
+app.get("/api/health", (req, res) => {
+  res.json({
+    status: "ok",
+  });
+});
+
+/* ============================================================
+   AUTH ROUTES
+============================================================ */
+
+/*
+ * IMPORTANT:
+ *
+ * Do NOT do:
+ *
+ * app.use("/api/auth", authLimiter, authRoutes);
+ *
+ * because that would rate-limit:
+ *
+ * /login
+ * /me
+ * /change-password
+ *
+ * Instead, mount the router normally and apply the limiter
+ * directly to the login route inside authRoutes.js.
+ */
+
+app.use("/api/auth", authRoutes);
+
+/* ============================================================
+   CUSTOMER / PRODUCT ROUTES
+============================================================ */
+
+app.use(
+  "/api/categories",
+  categoryRoutes,
+);
+
+app.use(
+  "/api/products",
+  productRoutes,
+);
+
+app.use(
+  "/api/sliders",
+  sliderRoutes,
+);
+
+app.use(
+  "/api/orders",
+  orderRoutes,
+);
+
+app.use(
+  "/api/dashboard",
+  dashboardRoutes,
+);
+
+app.use(
+  "/api/config",
+  configRoutes,
+);
+
+/* ============================================================
+   404
+============================================================ */
 
 app.use(notFound);
+
+/* ============================================================
+   GLOBAL ERROR HANDLER
+============================================================ */
+
 app.use(errorHandler);
 
 export default app;

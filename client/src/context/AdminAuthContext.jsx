@@ -4,6 +4,7 @@ import {
   useState,
   useCallback,
   useEffect,
+  useMemo,
 } from "react";
 
 import api from "../services/api";
@@ -14,9 +15,9 @@ const TOKEN_KEY = "kdm_admin_token";
 
 export function AdminAuthProvider({ children }) {
   const [admin, setAdmin] = useState(null);
-
-  const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
-
+  const [token, setToken] = useState(
+    () => localStorage.getItem(TOKEN_KEY),
+  );
   const [loading, setLoading] = useState(true);
 
   // ============================================================
@@ -30,29 +31,29 @@ export function AdminAuthProvider({ children }) {
       const storedToken = localStorage.getItem(TOKEN_KEY);
 
       if (!storedToken) {
-        if (mounted) {
-          setToken(null);
-          setAdmin(null);
-          setLoading(false);
-        }
+        if (!mounted) return;
+
+        setToken(null);
+        setAdmin(null);
+        setLoading(false);
+
         return;
       }
 
       try {
         const { data } = await api.get("/auth/me");
 
-        if (mounted) {
-          setAdmin(data.admin);
-          setToken(storedToken);
-        }
-      } catch (error) {
-        // Token is invalid / expired
+        if (!mounted) return;
+
+        setAdmin(data.admin);
+        setToken(storedToken);
+      } catch {
         localStorage.removeItem(TOKEN_KEY);
 
-        if (mounted) {
-          setToken(null);
-          setAdmin(null);
-        }
+        if (!mounted) return;
+
+        setToken(null);
+        setAdmin(null);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -73,7 +74,7 @@ export function AdminAuthProvider({ children }) {
 
   const login = useCallback(async (email, password) => {
     const { data } = await api.post("/auth/login", {
-      email,
+      email: email.trim().toLowerCase(),
       password,
     });
 
@@ -96,17 +97,37 @@ export function AdminAuthProvider({ children }) {
     setAdmin(null);
   }, []);
 
+  // ============================================================
+  // AUTH STATE
+  // ============================================================
+
+  const isAuthenticated = Boolean(admin && token);
+
+  // ============================================================
+  // CONTEXT VALUE
+  // ============================================================
+
+  const contextValue = useMemo(
+    () => ({
+      admin,
+      token,
+      loading,
+      isAuthenticated,
+      login,
+      logout,
+    }),
+    [
+      admin,
+      token,
+      loading,
+      isAuthenticated,
+      login,
+      logout,
+    ],
+  );
+
   return (
-    <AdminAuthContext.Provider
-      value={{
-        admin,
-        token,
-        loading,
-        isAuthenticated: !!admin && !!token,
-        login,
-        logout,
-      }}
-    >
+    <AdminAuthContext.Provider value={contextValue}>
       {children}
     </AdminAuthContext.Provider>
   );
@@ -116,8 +137,10 @@ export function useAdminAuth() {
   const ctx = useContext(AdminAuthContext);
 
   if (!ctx) {
-    throw new Error("useAdminAuth must be used within AdminAuthProvider");
+    throw new Error(
+      "useAdminAuth must be used within AdminAuthProvider",
+    );
   }
 
   return ctx;
-}
+};

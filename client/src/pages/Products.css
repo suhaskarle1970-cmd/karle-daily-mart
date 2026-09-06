@@ -5,11 +5,9 @@
 .product-grid {
   width: 100%;
   margin-top: 1.5rem;
-
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 14px;
-
   box-sizing: border-box;
 }
 
@@ -23,35 +21,26 @@
   align-items: center;
   justify-content: center;
   gap: 16px;
-
   width: 100%;
   margin-top: 32px;
   padding: 0 12px;
-
   font-size: 14px;
   font-weight: 600;
-
   box-sizing: border-box;
 }
 
 .pagination button {
   min-width: 40px;
   min-height: 38px;
-
   padding: 8px 14px;
-
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
-
   background: var(--color-surface);
   color: var(--color-text);
-
   font-family: var(--font-body);
   font-size: 13px;
   font-weight: 600;
-
   cursor: pointer;
-
   transition:
     background 0.2s ease,
     border-color 0.2s ease,
@@ -77,6 +66,7 @@
 
 /* =========================================================
    LARGE TABLET / SMALL LAPTOP
+   ≤ 1200px
 ========================================================= */
 
 @media (max-width: 1200px) {
@@ -89,13 +79,13 @@
 
 /* =========================================================
    TABLET
+   ≤ 1000px
 ========================================================= */
 
 @media (max-width: 1000px) {
   .product-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
     gap: 12px;
-
     margin-top: 1.25rem;
   }
 
@@ -107,13 +97,13 @@
 
 /* =========================================================
    TABLET PORTRAIT
+   ≤ 768px
 ========================================================= */
 
 @media (max-width: 768px) {
   .product-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
     gap: 11px;
-
     margin-top: 1.15rem;
   }
 
@@ -133,29 +123,26 @@
 
 /* =========================================================
    MOBILE
+   ≤ 640px
 ========================================================= */
 
 @media (max-width: 640px) {
   .product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 10px;
-
     margin-top: 1rem;
   }
 
   .pagination {
     gap: 10px;
     margin-top: 24px;
-
     font-size: 12px;
   }
 
   .pagination button {
     min-width: 36px;
     min-height: 34px;
-
     padding: 6px 10px;
-
     font-size: 12px;
   }
 }
@@ -163,6 +150,7 @@
 
 /* =========================================================
    SMALL MOBILE
+   ≤ 480px
 ========================================================= */
 
 @media (max-width: 480px) {
@@ -187,6 +175,7 @@
 
 /* =========================================================
    VERY SMALL PHONES
+   ≤ 360px
 ========================================================= */
 
 @media (max-width: 360px) {
@@ -202,7 +191,6 @@
   .pagination button {
     min-width: 32px;
     min-height: 30px;
-
     padding: 4px 7px;
     font-size: 11px;
   }

@@ -1,89 +1,232 @@
 import { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+
 import { useCart } from "../context/CartContext";
 import { useStoreConfig } from "../hooks/useStoreConfig";
-import { formatCurrency, buildWhatsAppMessage, buildWhatsAppLink } from "../utils/format";
+
+import {
+  formatCurrency,
+  buildWhatsAppMessage,
+  buildWhatsAppLink,
+} from "../utils/format";
+
 import api from "../services/api";
 import { EmptyState } from "../components/States";
+
 import "./Checkout.css";
 
+
+/* =========================================================
+   CONSTANTS
+========================================================= */
+
+const DEFAULT_MINIMUM_ORDER_AMOUNT = 500;
+const DEFAULT_CHARGE_PER_AMOUNT = 500;
+const DEFAULT_CHARGE_PER_AMOUNT_VALUE = 20;
+const DEFAULT_FLAT_DELIVERY_CHARGE = 20;
+
+
+/* =========================================================
+   VALIDATION
+========================================================= */
+
+function validateCheckoutForm(form) {
+  const errors = {};
+
+  const customerName = form.customerName.trim();
+  const mobile = form.mobile.trim();
+  const address = form.address.trim();
+
+  if (!customerName) {
+    errors.customerName = "Name is required.";
+  }
+
+  if (!/^[6-9]\d{9}$/.test(mobile)) {
+    errors.mobile = "Enter a valid 10-digit mobile number.";
+  }
+
+  if (!address || address.length < 8) {
+    errors.address = "Enter your full delivery address.";
+  }
+
+  return errors;
+}
+
+
+/* =========================================================
+   CHECKOUT
+========================================================= */
+
 export default function Checkout() {
-  const { items, totalAmount, clearCart } = useCart();
+  const { items, totalAmount, totalSavingsAmount, clearCart } =
+    useCart();
   const { config } = useStoreConfig();
+
   const navigate = useNavigate();
 
-  const subtotal = totalAmount;
+  const [form, setForm] = useState({
+    customerName: "",
+    mobile: "",
+    address: "",
+  });
 
-  const deliverySettings = config.delivery || {};
-
-  const minimumOrderAmount = Number(deliverySettings.minimumOrderAmount ?? 500);
-
-  const chargePerAmount = Number(deliverySettings.chargePerAmount ?? 500);
-
-  const chargePerAmountValue = Number(
-    deliverySettings.chargePerAmountValue ?? 20,
-  );
-
-  const deliveryCharge =
-    deliverySettings.enabled !== false && subtotal >= minimumOrderAmount
-      ? Math.floor(subtotal / chargePerAmount) * chargePerAmountValue
-      : 0;
-
-  const finalTotal = subtotal + deliveryCharge;
-
-  const [form, setForm] = useState({ customerName: "", mobile: "", address: "" });
   const [errors, setErrors] = useState({});
+
+  /* =========================================================
+     EMPTY CART
+  ========================================================= */
 
   if (items.length === 0) {
     return (
       <div className="container section">
-        <EmptyState title="Your cart is empty" description="Add products before checking out." />
+        <EmptyState
+          title="Your cart is empty"
+          description="Add products before checking out."
+        />
+
         <div style={{ textAlign: "center" }}>
-          <Link to="/products" className="btn btn-primary">Shop now</Link>
+          <Link to="/products" className="btn btn-primary">
+            Shop now
+          </Link>
         </div>
       </div>
     );
   }
 
-  function validate() {
-    const next = {};
-    if (!form.customerName.trim()) next.customerName = "Name is required.";
-    if (!/^[6-9]\d{9}$/.test(form.mobile.trim())) next.mobile = "Enter a valid 10-digit mobile number.";
-    if (!form.address.trim() || form.address.trim().length < 8) next.address = "Enter your full delivery address.";
-    setErrors(next);
-    return Object.keys(next).length === 0;
+  /* =========================================================
+   ORDER TOTALS
+========================================================= */
+
+  const subtotal = totalAmount;
+
+  const totalMrpAmount = items.reduce((sum, item) => {
+    const mrp = Number(item.mrp || 0);
+    const price = Number(item.price || 0);
+    const quantity = Number(item.quantity || 0);
+
+    return sum + mrp * quantity;
+  }, 0);
+
+  const totalSavingAmount = Math.max(0, totalMrpAmount - subtotal);
+
+  const deliverySettings = config.delivery || {};
+
+  const deliveryEnabled =
+  deliverySettings.enabled ?? true;
+
+  const minimumOrderAmount = Number(
+    deliverySettings.minimumOrderAmount ?? DEFAULT_MINIMUM_ORDER_AMOUNT,
+  );
+
+  const chargePerAmount = Number(
+    deliverySettings.chargePerAmount ?? DEFAULT_CHARGE_PER_AMOUNT,
+  );
+
+  const chargePerAmountValue = Number(
+    deliverySettings.chargePerAmountValue ?? DEFAULT_CHARGE_PER_AMOUNT_VALUE,
+  );
+
+  let   deliveryCharge = 0;
+
+  if (deliveryEnabled) {
+    if (subtotal < minimumOrderAmount) {
+      deliveryCharge = DEFAULT_FLAT_DELIVERY_CHARGE;
+    } else {
+      deliveryCharge =
+        Math.ceil(subtotal / chargePerAmount) * chargePerAmountValue;
+    }
   }
+
+  const finalTotal = subtotal + deliveryCharge;
+
+  /* =========================================================
+     FORM VALIDATION
+  ========================================================= */
+
+  function validate() {
+    const nextErrors = validateCheckoutForm(form);
+
+    setErrors(nextErrors);
+
+    return Object.keys(nextErrors).length === 0;
+  }
+
+  /* =========================================================
+     FORM INPUT
+  ========================================================= */
+
+  function handleInputChange(field, value) {
+    setForm((current) => ({
+      ...current,
+      [field]: value,
+    }));
+
+    /*
+     * Remove the field's previous error once the customer
+     * starts correcting it.
+     */
+    if (errors[field]) {
+      setErrors((current) => {
+        const next = { ...current };
+        delete next[field];
+        return next;
+      });
+    }
+  }
+
+  /* =========================================================
+     PLACE ORDER
+  ========================================================= */
 
   async function handlePlaceOrder(e) {
     e.preventDefault();
-    if (!validate()) return;
-    if (!config.whatsappNumber) {
-      setErrors({ form: "Store WhatsApp number isn't configured. Please call the store directly." });
+
+    if (!validate()) {
       return;
     }
+
+    if (!config.whatsappNumber) {
+      setErrors({
+        form: "Store WhatsApp number isn't configured. Please call the store directly.",
+      });
+
+      return;
+    }
+
+    /* =======================================================
+       ORDER PAYLOAD
+    ======================================================= */
 
     const orderPayload = {
       customerName: form.customerName.trim(),
       mobile: form.mobile.trim(),
       address: form.address.trim(),
 
-      items: items.map((i) => ({
-        product: i.productId,
-        name: i.name,
-        type: i.type || "",
-        variant: i.variant || "",
-        price: Number(i.price),
-        quantity: Number(i.quantity),
-        subtotal: Number(i.price) * Number(i.quantity),
-      })),
+      items: items.map((item) => {
+        const price = Number(item.price);
+        const quantity = Number(item.quantity);
+
+        return {
+          product: item.productId,
+          name: item.name,
+          type: item.type || "",
+          variant: item.variant || "",
+          price,
+          quantity,
+          subtotal: price * quantity,
+        };
+      }),
 
       subtotal,
       deliveryCharge,
       total: finalTotal,
     };
 
-    // Best-effort order log — the WhatsApp flow proceeds regardless of this succeeding.
     api.post("/orders", orderPayload).catch(() => {});
+
+    /* =======================================================
+       WHATSAPP MESSAGE
+    ======================================================= */
 
     const message = buildWhatsAppMessage({
       storeName: config.storeName,
@@ -96,17 +239,35 @@ export default function Checkout() {
       total: finalTotal,
     });
 
+    /* =======================================================
+       OPEN WHATSAPP
+    ======================================================= */
+
     const link = buildWhatsAppLink(config.whatsappNumber, message);
+
     window.open(link, "_blank");
+
+    /* =======================================================
+       COMPLETE CHECKOUT
+    ======================================================= */
+
     clearCart();
     navigate("/");
   }
+
+  /* =========================================================
+     RENDER
+========================================================= */
 
   return (
     <div className="container section checkout-page">
       <h1 className="cart-title">Review your order</h1>
 
       <div className="checkout-grid">
+        {/* ===================================================
+            CHECKOUT FORM
+        =================================================== */}
+
         <form className="checkout-form" onSubmit={handlePlaceOrder} noValidate>
           <label>
             Name
@@ -114,7 +275,7 @@ export default function Checkout() {
               type="text"
               value={form.customerName}
               onChange={(e) =>
-                setForm({ ...form, customerName: e.target.value })
+                handleInputChange("customerName", e.target.value)
               }
               placeholder="Your full name"
             />
@@ -128,7 +289,7 @@ export default function Checkout() {
             <input
               type="tel"
               value={form.mobile}
-              onChange={(e) => setForm({ ...form, mobile: e.target.value })}
+              onChange={(e) => handleInputChange("mobile", e.target.value)}
               placeholder="10-digit mobile number"
             />
             {errors.mobile && (
@@ -141,7 +302,7 @@ export default function Checkout() {
             <textarea
               rows={4}
               value={form.address}
-              onChange={(e) => setForm({ ...form, address: e.target.value })}
+              onChange={(e) => handleInputChange("address", e.target.value)}
               placeholder="House/flat no., street, area, landmark"
             />
             {errors.address && (
@@ -156,52 +317,74 @@ export default function Checkout() {
           </button>
         </form>
 
+        {/* ===================================================
+            ORDER SUMMARY
+        =================================================== */}
+
         <aside className="checkout-summary">
           <h3>Order summary</h3>
 
           <div className="checkout-summary-list">
-            {items.map((i) => (
-              <div key={i.lineKey} className="checkout-summary-row">
+            {items.map((item) => (
+              <div key={item.lineKey} className="checkout-summary-row">
                 <span>
-                  {i.name}
+                  {item.name}
 
-                  {i.type && (
+                  {item.type && (
                     <>
                       <br />
-                      <small>Type: {i.type}</small>
+                      <small>Type: {item.type}</small>
                     </>
                   )}
 
-                  {i.variant && (
+                  {item.variant && (
                     <>
                       <br />
-                      <small>Size: {i.variant}</small>
+                      <small>Size: {item.variant}</small>
                     </>
                   )}
 
                   {" × "}
-                  {i.quantity}
+                  {item.quantity}
                 </span>
 
-                <span>{formatCurrency(i.price * i.quantity)}</span>
+                <span>{formatCurrency(item.price * item.quantity)}</span>
               </div>
             ))}
           </div>
 
+          {/* SUBTOTAL */}
+
           <div className="checkout-summary-row">
             <span>Subtotal</span>
+
             <span>{formatCurrency(subtotal)}</span>
           </div>
 
-          <div className="checkout-summary-row">
-            <span>Delivery charges</span>
-            <span>
-              {deliveryCharge === 0 ? "Free" : formatCurrency(deliveryCharge)}
-            </span>
-          </div>
+          {/* DELIVERY */}
+
+          {deliveryCharge > 0 && (
+            <div className="checkout-summary-row">
+              <span className="delivery-charges">Delivery charges</span>
+
+              <span>{formatCurrency(deliveryCharge)}</span>
+            </div>
+          )}
+
+          {/* SAVINGS */}
+
+          {totalSavingAmount > 0 && (
+            <div className="checkout-saving">
+              <span>You are saving</span>
+              <strong>{formatCurrency(totalSavingAmount)}</strong>
+            </div>
+          )}
+
+          {/* FINAL TOTAL */}
 
           <div className="checkout-summary-total">
-            <span>Total</span>
+            <span>Total to pay</span>
+
             <span>{formatCurrency(finalTotal)}</span>
           </div>
         </aside>
