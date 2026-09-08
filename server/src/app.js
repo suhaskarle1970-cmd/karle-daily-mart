@@ -1,3 +1,7 @@
+import dns from "node:dns";
+
+dns.setServers(["1.1.1.1", "8.8.8.8"]);
+
 import express from "express";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
@@ -20,9 +24,7 @@ const app = express();
 
 app.use(
   cors({
-    origin:
-      process.env.CLIENT_URL ||
-      "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
 
     credentials: true,
   }),
@@ -61,8 +63,7 @@ const authLimiter = rateLimit({
   legacyHeaders: false,
 
   message: {
-    message:
-      "Too many login attempts. Please try again later.",
+    message: "Too many login attempts. Please try again later.",
   },
 });
 
@@ -103,35 +104,17 @@ app.use("/api/auth", authRoutes);
    CUSTOMER / PRODUCT ROUTES
 ============================================================ */
 
-app.use(
-  "/api/categories",
-  categoryRoutes,
-);
+app.use("/api/categories", categoryRoutes);
 
-app.use(
-  "/api/products",
-  productRoutes,
-);
+app.use("/api/products", productRoutes);
 
-app.use(
-  "/api/sliders",
-  sliderRoutes,
-);
+app.use("/api/sliders", sliderRoutes);
 
-app.use(
-  "/api/orders",
-  orderRoutes,
-);
+app.use("/api/orders", orderRoutes);
 
-app.use(
-  "/api/dashboard",
-  dashboardRoutes,
-);
+app.use("/api/dashboard", dashboardRoutes);
 
-app.use(
-  "/api/config",
-  configRoutes,
-);
+app.use("/api/config", configRoutes);
 
 /* ============================================================
    404

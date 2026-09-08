@@ -15,17 +15,6 @@ import { EmptyState } from "../components/States";
 
 import "./Checkout.css";
 
-
-/* =========================================================
-   CONSTANTS
-========================================================= */
-
-const DEFAULT_MINIMUM_ORDER_AMOUNT = 500;
-const DEFAULT_CHARGE_PER_AMOUNT = 500;
-const DEFAULT_CHARGE_PER_AMOUNT_VALUE = 20;
-const DEFAULT_FLAT_DELIVERY_CHARGE = 20;
-
-
 /* =========================================================
    VALIDATION
 ========================================================= */
@@ -52,14 +41,12 @@ function validateCheckoutForm(form) {
   return errors;
 }
 
-
 /* =========================================================
    CHECKOUT
 ========================================================= */
 
 export default function Checkout() {
-  const { items, totalAmount, totalSavingsAmount, clearCart } =
-    useCart();
+  const { items, totalAmount, totalSavingsAmount, clearCart } = useCart();
   const { config } = useStoreConfig();
 
   const navigate = useNavigate();
@@ -109,35 +96,41 @@ export default function Checkout() {
 
   const totalSavingAmount = Math.max(0, totalMrpAmount - subtotal);
 
-  const deliverySettings = config.delivery || {};
+ const deliverySettings = config.delivery || {};
 
-  const deliveryEnabled =
-  deliverySettings.enabled ?? true;
+ const deliveryEnabled = deliverySettings.enabled ?? true;
 
-  const minimumOrderAmount = Number(
-    deliverySettings.minimumOrderAmount ?? DEFAULT_MINIMUM_ORDER_AMOUNT,
-  );
+ const minimumOrderAmount = Number(deliverySettings.minimumOrderAmount ?? 500);
 
-  const chargePerAmount = Number(
-    deliverySettings.chargePerAmount ?? DEFAULT_CHARGE_PER_AMOUNT,
-  );
+ const firstDeliveryBandAmount = Number(
+   deliverySettings.firstDeliveryBandAmount ?? 750,
+ );
 
-  const chargePerAmountValue = Number(
-    deliverySettings.chargePerAmountValue ?? DEFAULT_CHARGE_PER_AMOUNT_VALUE,
-  );
+ const chargePerAmount = Number(deliverySettings.chargePerAmount ?? 500);
 
-  let   deliveryCharge = 0;
+ const chargePerAmountValue = Number(
+   deliverySettings.chargePerAmountValue ?? 20,
+ );
 
-  if (deliveryEnabled) {
-    if (subtotal < minimumOrderAmount) {
-      deliveryCharge = DEFAULT_FLAT_DELIVERY_CHARGE;
-    } else {
-      deliveryCharge =
-        Math.ceil(subtotal / chargePerAmount) * chargePerAmountValue;
-    }
-  }
+ let deliveryCharge = 0;
 
-  const finalTotal = subtotal + deliveryCharge;
+ if (deliveryEnabled) {
+   // First band
+   if (subtotal <= firstDeliveryBandAmount) {
+     deliveryCharge = chargePerAmountValue;
+   }
+
+   // Subsequent bands
+   else {
+     const additionalBands = Math.ceil(
+       (subtotal - firstDeliveryBandAmount) / chargePerAmount,
+     );
+
+     deliveryCharge = (additionalBands + 1) * chargePerAmountValue;
+   }
+ }
+
+const finalTotal = subtotal + deliveryCharge;
 
   /* =========================================================
      FORM VALIDATION
@@ -353,10 +346,28 @@ export default function Checkout() {
             ))}
           </div>
 
-          {/* SUBTOTAL */}
+          {/* MRP TOTAL */}
 
           <div className="checkout-summary-row">
-            <span>Subtotal</span>
+            <span>MRP Total</span>
+
+            <span>{formatCurrency(totalMrpAmount)}</span>
+          </div>
+
+          {/* DISCOUNT */}
+
+          {totalSavingAmount > 0 && (
+            <div className="checkout-summary-row checkout-discount-row">
+              <span>Discount</span>
+
+              <span>-{formatCurrency(totalSavingAmount)}</span>
+            </div>
+          )}
+
+          {/* YOUR PRICE */}
+
+          <div className="checkout-summary-row">
+            <span>Your Price</span>
 
             <span>{formatCurrency(subtotal)}</span>
           </div>
@@ -375,11 +386,12 @@ export default function Checkout() {
 
           {totalSavingAmount > 0 && (
             <div className="checkout-saving">
-              <span>You are saving</span>
+              <span>You save</span>
+
               <strong>{formatCurrency(totalSavingAmount)}</strong>
             </div>
           )}
-
+<hr />  
           {/* FINAL TOTAL */}
 
           <div className="checkout-summary-total">

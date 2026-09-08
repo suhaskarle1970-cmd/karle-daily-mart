@@ -63,6 +63,11 @@ const orderSchema = new mongoose.Schema(
       required: true,
       default: 0,
     },
+    expiresAt: {
+      type: Date,
+      default: () => new Date(Date.now() + 24 * 60 * 60 * 1000),
+      expires: 0,
+    },
   },
   { timestamps: true },
 );

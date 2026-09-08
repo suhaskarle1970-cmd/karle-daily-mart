@@ -13,6 +13,12 @@ const deliverySchema = new mongoose.Schema(
       default: 500,
     },
 
+    firstDeliveryBandAmount: {
+      type: Number,
+      default: 750,
+      min: 0,
+    },
+
     chargePerAmount: {
       type: Number,
       min: 1,

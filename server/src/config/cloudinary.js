@@ -9,15 +9,6 @@ cloudinary.config({
 
 const FOLDER = "karke-daily-mart";
 
-/**
- * Upload product/slider image to Cloudinary.
- *
- * - Limits dimensions to 1200x1200
- * - Automatically optimizes quality
- * - Automatically selects modern image format (WebP/AVIF when supported)
- * - Strips unnecessary metadata
- * - Keeps aspect ratio
- */
 export function uploadImageBuffer(buffer, { folder = "products" } = {}) {
   return new Promise((resolve, reject) => {
     const stream = cloudinary.uploader.upload_stream(

@@ -594,13 +594,7 @@ export async function updateProduct(req, res, next) {
 
       product.mrp = newMrp;
     } else {
-      /*
-        Important:
-        If admin changes price but doesn't
-        change MRP, still make sure the existing
-        MRP is not lower than the new price.
-      */
-
+    
       if (
         newMrp !== null &&
         newMrp !== undefined &&
@@ -724,18 +718,6 @@ export async function deleteProduct(req, res, next) {
 
 export async function getHomepageProducts(req, res, next) {
   try {
-    /*
-      Fetch all homepage products in ONE aggregation.
-
-      We:
-      1. Match active products once
-      2. Join their categories once
-      3. Keep only active categories
-      4. Sort newest first
-      5. Group products by department
-      6. Keep only 6 products per department
-      7. Also create the 6 featured products
-    */
 
     const result = await Product.aggregate([
       /* =====================================================

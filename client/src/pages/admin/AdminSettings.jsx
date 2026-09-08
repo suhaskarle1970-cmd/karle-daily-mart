@@ -5,6 +5,7 @@ import "./AdminSettings.css";
 const DEFAULT_SETTINGS = {
   enabled: true,
   minimumOrderAmount: 500,
+  firstDeliveryBandAmount: 750,
   chargePerAmount: 500,
   chargePerAmountValue: 20,
 };
@@ -12,13 +13,19 @@ const DEFAULT_SETTINGS = {
 function normalizeSettings(delivery = {}) {
   return {
     enabled: delivery.enabled ?? DEFAULT_SETTINGS.enabled,
+
     minimumOrderAmount:
       delivery.minimumOrderAmount ?? DEFAULT_SETTINGS.minimumOrderAmount,
+
+    firstDeliveryBandAmount:
+      delivery.firstDeliveryBandAmount ??
+      DEFAULT_SETTINGS.firstDeliveryBandAmount,
+
     chargePerAmount:
       delivery.chargePerAmount ?? DEFAULT_SETTINGS.chargePerAmount,
+
     chargePerAmountValue:
-      delivery.chargePerAmountValue ??
-      DEFAULT_SETTINGS.chargePerAmountValue,
+      delivery.chargePerAmountValue ?? DEFAULT_SETTINGS.chargePerAmountValue,
   };
 }
 
@@ -27,7 +34,13 @@ function formatAmount(value) {
 }
 
 export default function AdminSettings() {
-  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [settings, setSettings] = useState({
+    enabled: true,
+    minimumOrderAmount: 500,
+    firstDeliveryBandAmount: 750,
+    chargePerAmount: 500,
+    chargePerAmountValue: 20,
+  });
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -103,15 +116,26 @@ export default function AdminSettings() {
   ========================================================= */
 
   function validateSettings() {
-    const minimumOrderAmount = Number(settings.minimumOrderAmount);
-    const chargePerAmount = Number(settings.chargePerAmount);
-    const chargePerAmountValue = Number(settings.chargePerAmountValue);
+   const minimumOrderAmount = Number(settings.minimumOrderAmount);
+
+   const firstDeliveryBandAmount = Number(settings.firstDeliveryBandAmount);
+
+   const chargePerAmount = Number(settings.chargePerAmount);
+
+   const chargePerAmountValue = Number(settings.chargePerAmountValue);
 
     if (
       !Number.isFinite(minimumOrderAmount) ||
       minimumOrderAmount < 0
     ) {
       return "Minimum order amount must be a valid number.";
+    }
+
+    if (
+      !Number.isFinite(firstDeliveryBandAmount) ||
+      firstDeliveryBandAmount < minimumOrderAmount
+    ) {
+      return "First delivery band must be greater than or equal to the minimum order amount.";
     }
 
     if (
@@ -152,8 +176,13 @@ export default function AdminSettings() {
 
     const payload = {
       enabled: Boolean(settings.enabled),
+
       minimumOrderAmount: Number(settings.minimumOrderAmount),
+
+      firstDeliveryBandAmount: Number(settings.firstDeliveryBandAmount),
+
       chargePerAmount: Number(settings.chargePerAmount),
+
       chargePerAmountValue: Number(settings.chargePerAmountValue),
     };
 
@@ -161,11 +190,6 @@ export default function AdminSettings() {
       const { data } = await api.put("/config", {
         delivery: payload,
       });
-
-      /*
-       * Use server response when available.
-       * This keeps the UI synchronized with backend-normalized values.
-       */
 
       if (data?.delivery) {
         setSettings(normalizeSettings(data.delivery));
@@ -189,42 +213,31 @@ export default function AdminSettings() {
   ========================================================= */
 
   const minimumOrder = Number(settings.minimumOrderAmount) || 0;
-  const chargeStep = Number(settings.chargePerAmount) || 1;
-  const chargeValue =
-    Number(settings.chargePerAmountValue) || 0;
 
-  /*
-   * Show examples starting from the configured minimum.
-   *
-   * Example:
-   * minimum = 500
-   * step    = 500
-   * charge  = 20
-   *
-   * → ₹500  = ₹20
-   * → ₹1000 = ₹40
-   * → ₹1500 = ₹60
-   */
+  const firstDeliveryBand = Number(settings.firstDeliveryBandAmount) || 0;
+
+  const chargeStep = Number(settings.chargePerAmount) || 1;
+
+  const chargeValue = Number(settings.chargePerAmountValue) || 0;
 
   const example1 = minimumOrder;
-  const example2 = Math.max(
-    minimumOrder + chargeStep,
-    chargeStep,
-  );
-  const example3 = Math.max(
-    minimumOrder + chargeStep * 2,
-    chargeStep * 3,
-  );
+  const example2 = firstDeliveryBand;
+  const example3 = firstDeliveryBand + chargeStep;
 
   function calculateDelivery(orderAmount) {
-    if (orderAmount < minimumOrder) {
+    if (!settings.enabled) {
       return 0;
     }
 
-    return (
-      Math.ceil(orderAmount / chargeStep) *
-      chargeValue
+    if (orderAmount <= firstDeliveryBand) {
+      return chargeValue;
+    }
+
+    const additionalBands = Math.ceil(
+      (orderAmount - firstDeliveryBand) / chargeStep,
     );
+
+    return (additionalBands + 1) * chargeValue;
   }
 
   /* =========================================================
@@ -264,9 +277,7 @@ export default function AdminSettings() {
         <div>
           <h1>Store Settings</h1>
 
-          <p>
-            Manage your store and home delivery settings.
-          </p>
+          <p>Manage your store and home delivery settings.</p>
         </div>
       </div>
 
@@ -274,11 +285,7 @@ export default function AdminSettings() {
           SETTINGS FORM
       ===================================================== */}
 
-      <form
-        className="settings-card"
-        onSubmit={handleSave}
-        noValidate
-      >
+      <form className="settings-card" onSubmit={handleSave} noValidate>
         {/* ===================================================
             DELIVERY HEADER
         =================================================== */}
@@ -288,8 +295,8 @@ export default function AdminSettings() {
             <h2>Home Delivery</h2>
 
             <p>
-              Control when delivery is available and how
-              delivery charges are calculated.
+              Control when delivery is available and how delivery charges are
+              calculated.
             </p>
           </div>
 
@@ -341,10 +348,28 @@ export default function AdminSettings() {
             </div>
 
             <small>
-              Customers must reach this amount to use
-              home delivery.
+              Customers must reach this amount to use home delivery.
             </small>
           </label>
+
+          <div className="form-group">
+            <label htmlFor="firstDeliveryBandAmount">
+              First delivery band up to
+            </label>
+
+            <input
+              id="firstDeliveryBandAmount"
+              name="firstDeliveryBandAmount"
+              type="number"
+              min="0"
+              value={settings.firstDeliveryBandAmount}
+              onChange={handleChange}
+            />
+
+            <small>
+              Orders up to this amount use the first delivery charge.
+            </small>
+          </div>
 
           {/* CHARGE STEP */}
 
@@ -367,8 +392,8 @@ export default function AdminSettings() {
             </div>
 
             <small>
-              Example: ₹500 means the charge is calculated
-              for every ₹500 of order value.
+              Example: ₹500 means the charge is calculated for every ₹500 of
+              order value.
             </small>
           </label>
 
@@ -393,8 +418,8 @@ export default function AdminSettings() {
             </div>
 
             <small>
-              Delivery charge for each ₹
-              {formatAmount(chargeStep)} of order value.
+              Delivery charge for each ₹{formatAmount(chargeStep)} of order
+              value.
             </small>
           </label>
         </div>
@@ -407,36 +432,21 @@ export default function AdminSettings() {
           <strong>Example</strong>
 
           <div className="example-row">
-            <span>
-              ₹{formatAmount(example1)} order
-            </span>
+            <span>₹{formatAmount(example1)} order</span>
 
-            <b>
-              ₹{formatAmount(calculateDelivery(example1))}
-              {" "}delivery
-            </b>
+            <b>₹{formatAmount(calculateDelivery(example1))} delivery</b>
           </div>
 
           <div className="example-row">
-            <span>
-              ₹{formatAmount(example2)} order
-            </span>
+            <span>₹{formatAmount(example2)} order</span>
 
-            <b>
-              ₹{formatAmount(calculateDelivery(example2))}
-              {" "}delivery
-            </b>
+            <b>₹{formatAmount(calculateDelivery(example2))} delivery</b>
           </div>
 
           <div className="example-row">
-            <span>
-              ₹{formatAmount(example3)} order
-            </span>
+            <span>₹{formatAmount(example3)} order</span>
 
-            <b>
-              ₹{formatAmount(calculateDelivery(example3))}
-              {" "}delivery
-            </b>
+            <b>₹{formatAmount(calculateDelivery(example3))} delivery</b>
           </div>
         </div>
 
@@ -462,10 +472,7 @@ export default function AdminSettings() {
         =================================================== */}
 
         {message && (
-          <div
-            className="settings-message"
-            role="status"
-          >
+          <div className="settings-message" role="status">
             {message}
           </div>
         )}
@@ -475,14 +482,8 @@ export default function AdminSettings() {
         =================================================== */}
 
         <div className="settings-actions">
-          <button
-            type="submit"
-            className="btn btn-primary"
-            disabled={saving}
-          >
-            {saving
-              ? "Saving..."
-              : "Save Delivery Settings"}
+          <button type="submit" className="btn btn-primary" disabled={saving}>
+            {saving ? "Saving..." : "Save Delivery Settings"}
           </button>
         </div>
       </form>

@@ -26,12 +26,25 @@ export async function updateConfig(req, res, next) {
     }
 
     const minimumOrderAmount = Number(delivery.minimumOrderAmount);
+
+    const firstDeliveryBandAmount = Number(delivery.firstDeliveryBandAmount);
+
     const chargePerAmount = Number(delivery.chargePerAmount);
+
     const chargePerAmountValue = Number(delivery.chargePerAmountValue);
 
     if (Number.isNaN(minimumOrderAmount) || minimumOrderAmount < 0) {
       return res.status(400).json({
         message: "Minimum order amount must be valid.",
+      });
+    }
+
+    if (
+      !Number.isFinite(firstDeliveryBandAmount) ||
+      firstDeliveryBandAmount < 0
+    ) {
+      return res.status(400).json({
+        message: "First delivery band amount must be a valid number.",
       });
     }
 
@@ -52,8 +65,13 @@ export async function updateConfig(req, res, next) {
       {
         $set: {
           "delivery.enabled": Boolean(delivery.enabled),
+
           "delivery.minimumOrderAmount": minimumOrderAmount,
+
+          "delivery.firstDeliveryBandAmount": firstDeliveryBandAmount,
+
           "delivery.chargePerAmount": chargePerAmount,
+
           "delivery.chargePerAmountValue": chargePerAmountValue,
         },
       },

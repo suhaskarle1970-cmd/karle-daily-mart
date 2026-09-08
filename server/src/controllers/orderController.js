@@ -1,12 +1,6 @@
 import Order from "../models/Order.js";
 import StoreConfig from "../models/Config.js";
 
-const DEFAULT_FLAT_DELIVERY_CHARGE = 20;
-
-const DEFAULT_MINIMUM_ORDER_AMOUNT = 500;
-const DEFAULT_CHARGE_PER_AMOUNT = 500;
-const DEFAULT_CHARGE_PER_AMOUNT_VALUE = 20;
-
 export async function createOrder(req, res, next) {
   try {
     const { customerName, mobile, address, items } = req.body;
@@ -67,18 +61,6 @@ export async function createOrder(req, res, next) {
     const chargePerAmount = Number(delivery.chargePerAmount ?? 500);
 
     const chargePerAmountValue = Number(delivery.chargePerAmountValue ?? 20);
-
-    /*
-     * =========================================================
-     * CALCULATE DELIVERY CHARGE
-     * =========================================================
-     *
-     * BELOW MINIMUM:
-     * Fixed ₹20 delivery charge.
-     *
-     * AT / ABOVE MINIMUM:
-     * Use the regular store-setting calculation.
-     */
 
     let deliveryCharge = 0;
 
