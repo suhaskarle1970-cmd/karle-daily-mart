@@ -40,20 +40,6 @@ app.use(
   }),
 );
 
-/* ============================================================
-   AUTH RATE LIMITER
-   ------------------------------------------------------------
-   Used ONLY for login.
-
-   This protects against:
-   - brute-force attacks
-   - credential stuffing
-   - repeated password guessing
-
-   It should NOT be applied to /me because the frontend
-   legitimately calls /me when restoring an admin session.
-============================================================ */
-
 const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
 
@@ -80,23 +66,6 @@ app.get("/api/health", (req, res) => {
 /* ============================================================
    AUTH ROUTES
 ============================================================ */
-
-/*
- * IMPORTANT:
- *
- * Do NOT do:
- *
- * app.use("/api/auth", authLimiter, authRoutes);
- *
- * because that would rate-limit:
- *
- * /login
- * /me
- * /change-password
- *
- * Instead, mount the router normally and apply the limiter
- * directly to the login route inside authRoutes.js.
- */
 
 app.use("/api/auth", authRoutes);
 
