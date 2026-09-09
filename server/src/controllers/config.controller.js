@@ -1,4 +1,5 @@
 import StoreConfig from "../models/Config.js";
+import { DEPARTMENTS, DEPARTMENT_LABELS } from "../models/Category.js";
 
 export async function getConfig(req, res, next) {
   try {
@@ -9,7 +10,15 @@ export async function getConfig(req, res, next) {
       config = config.toObject();
     }
 
-    res.json(config);
+    const departments = DEPARTMENTS.map((id) => ({
+      id,
+      label: DEPARTMENT_LABELS[id],
+    }));
+
+    res.json({
+      ...config,
+      departments,
+    });
   } catch (err) {
     next(err);
   }

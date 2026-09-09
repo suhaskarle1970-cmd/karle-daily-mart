@@ -8,7 +8,28 @@ const FALLBACK = {
   storeEmail: "suhaskarle1970@gmail.com",
   whatsappNumber: "+91 8668781633",
 
-  departments: [],
+  departments: [
+    {
+      id: "grocery-kitchen",
+      label: "Grocery & Kitchen",
+    },
+    {
+      id: "snacks-drinks",
+      label: "Snacks & Drinks",
+    },
+    {
+      id: "beauty-personal-care",
+      label: "Beauty & Personal Care",
+    },
+    {
+      id: "household-essentials",
+      label: "Household Essentials",
+    },
+    {
+      id: "stationery",
+      label: "Stationery",
+    },
+  ],
 
   // ================================
   // DELIVERY SETTINGS

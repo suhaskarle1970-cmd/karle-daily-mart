@@ -137,6 +137,11 @@ export default function AdminCategories() {
       return;
     }
 
+    if (!form.department) {
+      setError("Please select a department.");
+      return;
+    }
+
     if (saving || !modal) {
       return;
     }
@@ -147,7 +152,7 @@ export default function AdminCategories() {
     const payload = {
       name: trimmedName,
       active: form.active,
-      department: form.department || null,
+      department: form.department,
     };
 
     try {
@@ -257,9 +262,7 @@ export default function AdminCategories() {
 
         {status === "error" && (
           <div>
-            <p className="field-error">
-              Couldn't load categories.
-            </p>
+            <p className="field-error">Couldn't load categories.</p>
 
             <button
               type="button"
@@ -294,13 +297,11 @@ export default function AdminCategories() {
 
                     <td>
                       {category.department ? (
-                        departmentLabels[category.department] ||
-                        "Unknown"
+                        departmentLabels[category.department] || "Unknown"
                       ) : (
                         <span
                           style={{
-                            color:
-                              "var(--color-text-muted)",
+                            color: "var(--color-text-muted)",
                           }}
                         >
                           Unassigned
@@ -313,14 +314,10 @@ export default function AdminCategories() {
                     <td>
                       <span
                         className={`badge ${
-                          category.active
-                            ? "badge-active"
-                            : "badge-inactive"
+                          category.active ? "badge-active" : "badge-inactive"
                         }`}
                       >
-                        {category.active
-                          ? "Active"
-                          : "Inactive"}
+                        {category.active ? "Active" : "Inactive"}
                       </span>
                     </td>
 
@@ -330,9 +327,7 @@ export default function AdminCategories() {
                       <button
                         type="button"
                         className="icon-btn"
-                        onClick={() =>
-                          openEdit(category)
-                        }
+                        onClick={() => openEdit(category)}
                         disabled={saving}
                       >
                         Edit
@@ -341,9 +336,7 @@ export default function AdminCategories() {
                       <button
                         type="button"
                         className="icon-btn danger"
-                        onClick={() =>
-                          handleDelete(category)
-                        }
+                        onClick={() => handleDelete(category)}
                         disabled={saving}
                       >
                         Delete
@@ -354,9 +347,7 @@ export default function AdminCategories() {
 
                 {categories.length === 0 && (
                   <tr>
-                    <td colSpan={4}>
-                      No categories yet.
-                    </td>
+                    <td colSpan={4}>No categories yet.</td>
                   </tr>
                 )}
               </tbody>
@@ -373,9 +364,7 @@ export default function AdminCategories() {
         <div
           className="modal-backdrop"
           onMouseDown={(event) => {
-            if (
-              event.target === event.currentTarget
-            ) {
+            if (event.target === event.currentTarget) {
               closeModal();
             }
           }}
@@ -383,14 +372,10 @@ export default function AdminCategories() {
           <form
             className="modal-card"
             onSubmit={handleSave}
-            onMouseDown={(event) =>
-              event.stopPropagation()
-            }
+            onMouseDown={(event) => event.stopPropagation()}
           >
             <h2>
-              {modal.mode === "create"
-                ? "Add category"
-                : "Edit category"}
+              {modal.mode === "create" ? "Add category" : "Edit category"}
             </h2>
 
             <div className="form-grid">
@@ -398,16 +383,10 @@ export default function AdminCategories() {
 
               <label>
                 Name
-
                 <input
                   type="text"
                   value={form.name}
-                  onChange={(event) =>
-                    updateForm(
-                      "name",
-                      event.target.value,
-                    )
-                  }
+                  onChange={(event) => updateForm("name", event.target.value)}
                   required
                   autoFocus
                   maxLength={100}
@@ -420,26 +399,20 @@ export default function AdminCategories() {
 
               <label>
                 Department
-
                 <select
                   value={form.department}
                   onChange={(event) =>
-                    updateForm(
-                      "department",
-                      event.target.value,
-                    )
+                    updateForm("department", event.target.value)
                   }
                   disabled={saving}
+                  required
                 >
-                  <option value="">
-                    Unassigned
+                  <option value="" disabled>
+                    Select department
                   </option>
 
                   {departments.map((department) => (
-                    <option
-                      key={department.id}
-                      value={department.id}
-                    >
+                    <option key={department.id} value={department.id}>
                       {department.label}
                     </option>
                   ))}
@@ -453,24 +426,17 @@ export default function AdminCategories() {
                   type="checkbox"
                   checked={form.active}
                   onChange={(event) =>
-                    updateForm(
-                      "active",
-                      event.target.checked,
-                    )
+                    updateForm("active", event.target.checked)
                   }
                   disabled={saving}
                 />
-
                 Active
               </label>
 
               {/* ERROR */}
 
               {error && (
-                <p
-                  className="field-error"
-                  role="alert"
-                >
+                <p className="field-error" role="alert">
                   {error}
                 </p>
               )}
@@ -493,14 +459,9 @@ export default function AdminCategories() {
               <button
                 type="submit"
                 className="btn btn-primary"
-                disabled={
-                  saving ||
-                  !form.name.trim()
-                }
+                disabled={saving || !form.name.trim()}
               >
-                {saving
-                  ? "Saving…"
-                  : "Save"}
+                {saving ? "Saving…" : "Save"}
               </button>
             </div>
           </form>

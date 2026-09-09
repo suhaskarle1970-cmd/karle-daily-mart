@@ -36,17 +36,15 @@ function parseVariants(raw) {
   try {
     parsed = typeof raw === "string" ? JSON.parse(raw) : raw;
   } catch {
-    throw Object.assign(
-      new Error("Variants must be valid JSON."),
-      { status: 400 },
-    );
+    throw Object.assign(new Error("Variants must be valid JSON."), {
+      status: 400,
+    });
   }
 
   if (!Array.isArray(parsed)) {
-    throw Object.assign(
-      new Error("Variants must be an array."),
-      { status: 400 },
-    );
+    throw Object.assign(new Error("Variants must be an array."), {
+      status: 400,
+    });
   }
 
   return parsed.map((v, i) => {
@@ -63,9 +61,7 @@ function parseVariants(raw) {
 
     if (!["g", "kg", "ml", "l", "pcs"].includes(unit)) {
       throw Object.assign(
-        new Error(
-          `Variant ${i + 1}: unit must be g, kg, ml, l, or pcs.`,
-        ),
+        new Error(`Variant ${i + 1}: unit must be g, kg, ml, l, or pcs.`),
         { status: 400 },
       );
     }
@@ -74,9 +70,7 @@ function parseVariants(raw) {
 
     if (!Number.isFinite(amount) || amount <= 0) {
       throw Object.assign(
-        new Error(
-          `Variant ${i + 1}: amount must be a positive number.`,
-        ),
+        new Error(`Variant ${i + 1}: amount must be a positive number.`),
         { status: 400 },
       );
     }
@@ -85,23 +79,16 @@ function parseVariants(raw) {
 
     if (!Number.isFinite(price) || price < 0) {
       throw Object.assign(
-        new Error(
-          `Variant ${i + 1}: price must be a valid number.`,
-        ),
+        new Error(`Variant ${i + 1}: price must be a valid number.`),
         { status: 400 },
       );
     }
 
     /* MRP */
 
-    if (
-      mrp !== null &&
-      (!Number.isFinite(mrp) || mrp < 0)
-    ) {
+    if (mrp !== null && (!Number.isFinite(mrp) || mrp < 0)) {
       throw Object.assign(
-        new Error(
-          `Variant ${i + 1}: MRP must be a valid number.`,
-        ),
+        new Error(`Variant ${i + 1}: MRP must be a valid number.`),
         { status: 400 },
       );
     }
@@ -110,9 +97,7 @@ function parseVariants(raw) {
 
     if (mrp !== null && mrp < price) {
       throw Object.assign(
-        new Error(
-          `Variant ${i + 1}: MRP cannot be lower than selling price.`,
-        ),
+        new Error(`Variant ${i + 1}: MRP cannot be lower than selling price.`),
         { status: 400 },
       );
     }
@@ -235,73 +220,41 @@ function parseProductTypes(raw) {
   });
 }
 
-/* =========================================================
-   LIST PRODUCTS
+/* ========================================================= 
+LIST PRODUCTS 
 ========================================================= */
 
 export async function listProducts(req, res, next) {
   try {
-    const page = Math.max(
-      1,
-      parseInt(req.query.page, 10) || 1,
-    );
-
+    const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(
       PAGE_SIZE_MAX,
-      Math.max(
-        1,
-        parseInt(req.query.limit, 10) || PAGE_SIZE_DEFAULT,
-      ),
+      Math.max(1, parseInt(req.query.limit, 10) || PAGE_SIZE_DEFAULT),
     );
-
-    const {
-      category,
-      search,
-      includeInactive,
-    } = req.query;
-
-    const filter =
-      includeInactive === "true"
-        ? {}
-        : { active: true };
-
+    const { category, search, includeInactive } = req.query;
+    const filter = includeInactive === "true" ? {} : { active: true };
     if (category) {
       filter.category = category;
     }
-
     if (search && search.trim()) {
-      filter.$text = {
-        $search: search.trim(),
-      };
+      filter.$text = { $search: search.trim() };
     }
-
     const [products, total] = await Promise.all([
       Product.find(filter)
-        .populate(
-          "category",
-          "name slug department",
-        )
-        .sort(
-          search
-            ? { score: { $meta: "textScore" } }
-            : { createdAt: -1 },
-        )
+        .populate("category", "name slug department")
+        .sort(search ? { score: { $meta: "textScore" } } : { createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
-
       Product.countDocuments(filter),
     ]);
-
     res.json({
       products,
-
       pagination: {
         page,
         limit,
         total,
-        totalPages:
-          Math.ceil(total / limit) || 1,
+        totalPages: Math.ceil(total / limit) || 1,
       },
     });
   } catch (err) {
@@ -315,17 +268,12 @@ export async function listProducts(req, res, next) {
 
 export async function getProduct(req, res, next) {
   try {
-    const product = await Product.findById(
-      req.params.id,
-    ).populate(
+    const product = await Product.findById(req.params.id).populate(
       "category",
       "name slug department",
     );
 
-    if (
-      !product ||
-      (!product.active && !req.admin)
-    ) {
+    if (!product || (!product.active && !req.admin)) {
       return res.status(404).json({
         message: "Product not found.",
       });
@@ -351,6 +299,7 @@ export async function createProduct(req, res, next) {
       description,
       barcode,
       active,
+      featured,
       pricingType,
     } = req.body;
 
@@ -497,6 +446,8 @@ export async function createProduct(req, res, next) {
 
       imageUrl,
 
+      featured: featured === "true",
+
       imagePublicId,
     });
 
@@ -514,8 +465,7 @@ export async function createProduct(req, res, next) {
 
 export async function updateProduct(req, res, next) {
   try {
-    const product =
-      await Product.findById(req.params.id);
+    const product = await Product.findById(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -531,6 +481,7 @@ export async function updateProduct(req, res, next) {
       description,
       barcode,
       active,
+      featured,
       pricingType,
     } = req.body;
 
@@ -547,13 +498,9 @@ export async function updateProduct(req, res, next) {
     if (price !== undefined) {
       const parsedPrice = parseNumber(price);
 
-      if (
-        parsedPrice === null ||
-        parsedPrice < 0
-      ) {
+      if (parsedPrice === null || parsedPrice < 0) {
         return res.status(400).json({
-          message:
-            "Price must be a valid number.",
+          message: "Price must be a valid number.",
         });
       }
 
@@ -566,40 +513,23 @@ export async function updateProduct(req, res, next) {
     let newMrp = product.mrp;
 
     if (mrp !== undefined) {
-      newMrp =
-        mrp === null || mrp === ""
-          ? null
-          : parseNumber(mrp);
+      newMrp = mrp === null || mrp === "" ? null : parseNumber(mrp);
 
-      if (
-        mrp !== null &&
-        mrp !== "" &&
-        newMrp === null
-      ) {
+      if (mrp !== null && mrp !== "" && newMrp === null) {
         return res.status(400).json({
-          message:
-            "MRP must be a valid number.",
+          message: "MRP must be a valid number.",
         });
       }
 
-      if (
-        newMrp !== null &&
-        newMrp < newPrice
-      ) {
+      if (newMrp !== null && newMrp < newPrice) {
         return res.status(400).json({
-          message:
-            "MRP cannot be lower than selling price.",
+          message: "MRP cannot be lower than selling price.",
         });
       }
 
       product.mrp = newMrp;
     } else {
-    
-      if (
-        newMrp !== null &&
-        newMrp !== undefined &&
-        newMrp < newPrice
-      ) {
+      if (newMrp !== null && newMrp !== undefined && newMrp < newPrice) {
         return res.status(400).json({
           message:
             "Selling price cannot be higher than the current MRP. Update the MRP first.",
@@ -622,17 +552,17 @@ export async function updateProduct(req, res, next) {
     }
 
     if (active !== undefined) {
-      product.active =
-        active === "true" ||
-        active === true;
+      product.active = active === "true" || active === true;
+    }
+
+    if (featured !== undefined) {
+      product.featured = featured === "true" || featured === true;
     }
 
     /* VARIANTS */
 
     if (req.body.variants !== undefined) {
-      product.variants = parseVariants(
-        req.body.variants,
-      );
+      product.variants = parseVariants(req.body.variants);
     }
 
     if (req.body.types !== undefined) {
@@ -647,20 +577,14 @@ export async function updateProduct(req, res, next) {
     /* IMAGE */
 
     if (req.file) {
-      const oldPublicId =
-        product.imagePublicId;
+      const oldPublicId = product.imagePublicId;
 
-      const uploaded =
-        await uploadImageBuffer(
-          req.file.buffer,
-          {
-            folder: "products",
-          },
-        );
+      const uploaded = await uploadImageBuffer(req.file.buffer, {
+        folder: "products",
+      });
 
       product.imageUrl = uploaded.url;
-      product.imagePublicId =
-        uploaded.publicId;
+      product.imagePublicId = uploaded.publicId;
 
       if (oldPublicId) {
         await deleteImage(oldPublicId);
@@ -683,10 +607,7 @@ export async function updateProduct(req, res, next) {
 
 export async function deleteProduct(req, res, next) {
   try {
-    const product =
-      await Product.findByIdAndDelete(
-        req.params.id,
-      );
+    const product = await Product.findByIdAndDelete(req.params.id);
 
     if (!product) {
       return res.status(404).json({
@@ -695,9 +616,7 @@ export async function deleteProduct(req, res, next) {
     }
 
     if (product.imagePublicId) {
-      await deleteImage(
-        product.imagePublicId,
-      );
+      await deleteImage(product.imagePublicId);
     }
 
     res.json({
@@ -718,7 +637,6 @@ export async function deleteProduct(req, res, next) {
 
 export async function getHomepageProducts(req, res, next) {
   try {
-
     const result = await Product.aggregate([
       /* =====================================================
          ACTIVE PRODUCTS
@@ -770,27 +688,14 @@ export async function getHomepageProducts(req, res, next) {
         },
       },
 
-      /* =====================================================
-         CREATE:
-         - featured
-         - department products
-      ===================================================== */
-
       {
         $facet: {
-          /* ================================================
-             FEATURED PRODUCTS
-          ================================================= */
-
           featured: [
+            {$match: {featured: true}},
             {
               $limit: 6,
             },
           ],
-
-          /* ================================================
-             DEPARTMENT PRODUCTS
-          ================================================= */
 
           departments: [
             {
@@ -872,8 +777,7 @@ export async function getHomepageProducts(req, res, next) {
     */
 
     for (const department of aggregationResult.departments || []) {
-      departmentProducts[department._id] =
-        department.products || [];
+      departmentProducts[department._id] = department.products || [];
     }
 
     /* =========================================================

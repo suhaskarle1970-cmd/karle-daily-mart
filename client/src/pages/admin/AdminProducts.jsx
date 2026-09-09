@@ -11,6 +11,7 @@ const EMPTY_FORM = {
   description: "",
   barcode: "",
   active: true,
+  featured: false,
 };
 
 const UNITS = ["g", "kg", "ml", "l", "pcs"];
@@ -423,14 +424,11 @@ export default function AdminProducts() {
       name: product.name || "",
       price: product.price ?? "",
       mrp: product.mrp ?? "",
-      category:
-        product.category?._id || "",
-      description:
-        product.description || "",
-      barcode:
-        product.barcode || "",
-      active:
-        product.active !== false,
+      category: product.category?._id || "",
+      description: product.description || "",
+      barcode: product.barcode || "",
+      active: product.active !== false,
+      featured: product.featured === true,
     });
 
     setVariants(
@@ -1405,11 +1403,7 @@ export default function AdminProducts() {
       <div className="admin-page-header">
         <h1>Products</h1>
 
-        <button
-          type="button"
-          className="btn btn-primary"
-          onClick={openCreate}
-        >
+        <button type="button" className="btn btn-primary" onClick={openCreate}>
           + Add product
         </button>
       </div>
@@ -1423,11 +1417,7 @@ export default function AdminProducts() {
           type="search"
           placeholder="Search products…"
           value={searchInput}
-          onChange={(e) =>
-            setSearchInput(
-              e.target.value,
-            )
-          }
+          onChange={(e) => setSearchInput(e.target.value)}
           aria-label="Search products"
         />
 
@@ -1435,28 +1425,17 @@ export default function AdminProducts() {
           value={categoryFilter}
           onChange={(e) => {
             setPage(1);
-            setCategoryFilter(
-              e.target.value,
-            );
+            setCategoryFilter(e.target.value);
           }}
           aria-label="Filter by category"
         >
-          <option value="">
-            All categories
-          </option>
+          <option value="">All categories</option>
 
-          {categories.map(
-            (category) => (
-              <option
-                key={category._id}
-                value={
-                  category._id
-                }
-              >
-                {category.name}
-              </option>
-            ),
-          )}
+          {categories.map((category) => (
+            <option key={category._id} value={category._id}>
+              {category.name}
+            </option>
+          ))}
         </select>
       </div>
 
@@ -1465,22 +1444,16 @@ export default function AdminProducts() {
       ===================================================== */}
 
       <div className="admin-card">
-        {status === "loading" && (
-          <p>Loading…</p>
-        )}
+        {status === "loading" && <p>Loading…</p>}
 
         {status === "error" && (
           <div>
-            <p className="field-error">
-              Couldn't load products.
-            </p>
+            <p className="field-error">Couldn't load products.</p>
 
             <button
               type="button"
               className="btn btn-outline"
-              onClick={
-                loadProducts
-              }
+              onClick={loadProducts}
             >
               Try again
             </button>
@@ -1494,163 +1467,108 @@ export default function AdminProducts() {
                 <thead>
                   <tr>
                     <th scope="col"></th>
-                    <th scope="col">
-                      Name
-                    </th>
-                    <th scope="col">
-                      Category
-                    </th>
-                    <th scope="col">
-                      Price
-                    </th>
-                    <th scope="col">
-                      Options
-                    </th>
-                    <th scope="col">
-                      Status
-                    </th>
+                    <th scope="col">Name</th>
+                    <th scope="col">Category</th>
+                    <th scope="col">Price</th>
+                    <th scope="col">Options</th>
+                    <th scope="col">Featured</th>
+                    <th scope="col">Status</th>
                     <th scope="col"></th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {products.map(
-                    (product) => {
-                      const isTypeBased =
-                        product.pricingType ===
-                        "type-based";
+                  {products.map((product) => {
+                    const isTypeBased = product.pricingType === "type-based";
 
-                      const typeCount =
-                        Array.isArray(
-                          product.types,
-                        )
-                          ? product
-                              .types
-                              .length
-                          : 0;
+                    const typeCount = Array.isArray(product.types)
+                      ? product.types.length
+                      : 0;
 
-                      const variantCount =
-                        Array.isArray(
-                          product.variants,
-                        )
-                          ? product
-                              .variants
-                              .length
-                          : 0;
+                    const variantCount = Array.isArray(product.variants)
+                      ? product.variants.length
+                      : 0;
 
-                      return (
-                        <tr
-                          key={
-                            product._id
-                          }
-                        >
-                          <td>
-                            {product.imageUrl ? (
-                              <img
-                                className="thumb"
-                                src={
-                                  product.imageUrl
-                                }
-                                alt=""
-                                loading="lazy"
-                              />
-                            ) : (
-                              <span>
-                                —
-                              </span>
-                            )}
-                          </td>
+                    return (
+                      <tr key={product._id}>
+                        <td>
+                          {product.imageUrl ? (
+                            <img
+                              className="thumb"
+                              src={product.imageUrl}
+                              alt=""
+                              loading="lazy"
+                            />
+                          ) : (
+                            <span>—</span>
+                          )}
+                        </td>
 
-                          <td>
-                            {product.name}
-                          </td>
+                        <td>{product.name}</td>
 
-                          <td>
-                            {product
-                              .category
-                              ?.name ||
-                              "—"}
-                          </td>
+                        <td>{product.category?.name || "—"}</td>
 
-                          <td>
-                            {isTypeBased
-                              ? "Type-based"
-                              : formatCurrency(
-                                  product.price,
-                                )}
-                          </td>
+                        <td>
+                          {isTypeBased
+                            ? "Type-based"
+                            : formatCurrency(product.price)}
+                        </td>
 
-                          <td>
-                            {isTypeBased
-                              ? `${typeCount} types`
-                              : variantCount
-                                ? `${variantCount} sizes`
-                                : "Single price"}
-                          </td>
+                        <td>
+                          {isTypeBased
+                            ? `${typeCount} types`
+                            : variantCount
+                              ? `${variantCount} sizes`
+                              : "Single price"}
+                        </td>
 
-                          <td>
-                            <button
-                              type="button"
-                              className={`badge ${
-                                product.active
-                                  ? "badge-active"
-                                  : "badge-inactive"
-                              }`}
-                              onClick={() =>
-                                toggleActive(
-                                  product,
-                                )
-                              }
-                              aria-label={`Set ${product.name} ${
-                                product.active
-                                  ? "inactive"
-                                  : "active"
-                              }`}
-                            >
-                              {product.active
-                                ? "Active"
-                                : "Inactive"}
-                            </button>
-                          </td>
+                        <td>
+                          {product.featured ? (
+                            <span className="badge badge-active">Featured</span>
+                          ) : (
+                            <span className="badge badge-inactive">No</span>
+                          )}
+                        </td>
 
-                          <td>
-                            <button
-                              type="button"
-                              className="icon-btn"
-                              onClick={() =>
-                                openEdit(
-                                  product,
-                                )
-                              }
-                            >
-                              Edit
-                            </button>
+                        <td>
+                          <button
+                            type="button"
+                            className={`badge ${
+                              product.active ? "badge-active" : "badge-inactive"
+                            }`}
+                            onClick={() => toggleActive(product)}
+                            aria-label={`Set ${product.name} ${
+                              product.active ? "inactive" : "active"
+                            }`}
+                          >
+                            {product.active ? "Active" : "Inactive"}
+                          </button>
+                        </td>
 
-                            <button
-                              type="button"
-                              className="icon-btn danger"
-                              onClick={() =>
-                                handleDelete(
-                                  product,
-                                )
-                              }
-                            >
-                              Delete
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    },
-                  )}
+                        <td>
+                          <button
+                            type="button"
+                            className="icon-btn"
+                            onClick={() => openEdit(product)}
+                          >
+                            Edit
+                          </button>
 
-                  {products.length ===
-                    0 && (
+                          <button
+                            type="button"
+                            className="icon-btn danger"
+                            onClick={() => handleDelete(product)}
+                          >
+                            Delete
+                          </button>
+                        </td>
+                      </tr>
+                    );
+                  })}
+
+                  {products.length === 0 && (
                     <tr>
-                      <td
-                        colSpan={7}
-                      >
-                        No products found.
-                      </td>
+                      <td colSpan={8}>No products found.</td>
                     </tr>
                   )}
                 </tbody>
@@ -1661,57 +1579,31 @@ export default function AdminProducts() {
                 PAGINATION
             ================================================= */}
 
-            {pagination &&
-              pagination.totalPages >
-                1 && (
-                <div className="pagination">
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    disabled={
-                      page <= 1
-                    }
-                    onClick={() =>
-                      setPage(
-                        (current) =>
-                          current -
-                          1,
-                      )
-                    }
-                  >
-                    Previous
-                  </button>
+            {pagination && pagination.totalPages > 1 && (
+              <div className="pagination">
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={page <= 1}
+                  onClick={() => setPage((current) => current - 1)}
+                >
+                  Previous
+                </button>
 
-                  <span>
-                    Page{" "}
-                    {
-                      pagination.page
-                    }{" "}
-                    of{" "}
-                    {
-                      pagination.totalPages
-                    }
-                  </span>
+                <span>
+                  Page {pagination.page} of {pagination.totalPages}
+                </span>
 
-                  <button
-                    type="button"
-                    className="btn btn-outline"
-                    disabled={
-                      page >=
-                      pagination.totalPages
-                    }
-                    onClick={() =>
-                      setPage(
-                        (current) =>
-                          current +
-                          1,
-                      )
-                    }
-                  >
-                    Next
-                  </button>
-                </div>
-              )}
+                <button
+                  type="button"
+                  className="btn btn-outline"
+                  disabled={page >= pagination.totalPages}
+                  onClick={() => setPage((current) => current + 1)}
+                >
+                  Next
+                </button>
+              </div>
+            )}
           </>
         )}
       </div>
@@ -1724,42 +1616,22 @@ export default function AdminProducts() {
         <div
           className="modal-backdrop"
           onMouseDown={(e) => {
-            if (
-              e.target ===
-              e.currentTarget
-            ) {
+            if (e.target === e.currentTarget) {
               closeModal();
             }
           }}
         >
-          <form
-            className="modal-card"
-            onSubmit={handleSave}
-          >
-            <h2>
-              {modal.mode ===
-              "create"
-                ? "Add product"
-                : "Edit product"}
-            </h2>
+          <form className="modal-card" onSubmit={handleSave}>
+            <h2>{modal.mode === "create" ? "Add product" : "Edit product"}</h2>
 
             <div className="form-grid">
               {/* NAME */}
 
               <label>
                 Name
-
                 <input
-                  value={
-                    form.name
-                  }
-                  onChange={(e) =>
-                    updateForm(
-                      "name",
-                      e.target
-                        .value,
-                    )
-                  }
+                  value={form.name}
+                  onChange={(e) => updateForm("name", e.target.value)}
                   required
                   maxLength={150}
                   autoComplete="off"
@@ -1770,317 +1642,186 @@ export default function AdminProducts() {
 
               <label>
                 Pricing Type
-
                 <select
-                  value={
-                    pricingType
-                  }
-                  onChange={(e) =>
-                    handlePricingTypeChange(
-                      e.target
-                        .value,
-                    )
-                  }
+                  value={pricingType}
+                  onChange={(e) => handlePricingTypeChange(e.target.value)}
                 >
-                  <option value="standard">
-                    Standard Price
-                  </option>
+                  <option value="standard">Standard Price</option>
 
-                  <option value="type-based">
-                    Type-based Price
-                  </option>
+                  <option value="type-based">Type-based Price</option>
                 </select>
               </label>
 
               {/* STANDARD */}
 
-              {pricingType ===
-                "standard" && (
+              {pricingType === "standard" && (
                 <>
                   <label>
                     Price (₹)
-
                     <input
                       type="number"
                       min="0"
                       step="0.01"
-                      value={
-                        form.price
-                      }
-                      onChange={(
-                        e,
-                      ) =>
-                        updateForm(
-                          "price",
-                          e.target
-                            .value,
-                        )
-                      }
-                      required={
-                        variants.length ===
-                        0
-                      }
+                      value={form.price}
+                      onChange={(e) => updateForm("price", e.target.value)}
+                      required={variants.length === 0}
                     />
                   </label>
 
                   <label>
                     MRP (₹)
-                    <span className="form-help-inline">
-                      — optional
-                    </span>
-
+                    <span className="form-help-inline">— optional</span>
                     <input
                       type="number"
                       min="0"
                       step="0.01"
-                      value={
-                        form.mrp
-                      }
-                      onChange={(
-                        e,
-                      ) =>
-                        updateForm(
-                          "mrp",
-                          e.target
-                            .value,
-                        )
-                      }
+                      value={form.mrp}
+                      onChange={(e) => updateForm("mrp", e.target.value)}
                       placeholder="e.g. 120"
                     />
                   </label>
 
                   <div className="form-full">
-                    <label>
-                      Sizes / quantities
-                    </label>
+                    <label>Sizes / quantities</label>
 
-                    <VariantEditor
-                      variants={
-                        variants
-                      }
-                      onChange={
-                        setVariants
-                      }
-                    />
+                    <VariantEditor variants={variants} onChange={setVariants} />
                   </div>
                 </>
               )}
 
               {/* TYPE BASED */}
 
-              {pricingType ===
-                "type-based" && (
+              {pricingType === "type-based" && (
                 <div className="form-full">
-                  <label>
-                    Product Types /
-                    Quality
-                  </label>
+                  <label>Product Types / Quality</label>
 
                   <p className="form-help">
-                    Example: Rice →
-                    Kolam, Basmati,
-                    HMT. Each type
-                    can have its own
-                    sizes and prices.
+                    Example: Rice → Kolam, Basmati, HMT. Each type can have its
+                    own sizes and prices.
                   </p>
 
-                  {types.map(
-                    (
-                      type,
-                      typeIndex,
-                    ) => (
-                      <div
-                        className="type-editor"
-                        key={`type-${typeIndex}`}
-                      >
-                        <div className="type-editor-header">
+                  {types.map((type, typeIndex) => (
+                    <div className="type-editor" key={`type-${typeIndex}`}>
+                      <div className="type-editor-header">
+                        <input
+                          type="text"
+                          placeholder="Type name e.g. Kolam Rice"
+                          value={type.name}
+                          onChange={(e) =>
+                            updateTypeName(typeIndex, e.target.value)
+                          }
+                          maxLength={100}
+                        />
+
+                        {types.length > 1 && (
+                          <button
+                            type="button"
+                            className="icon-btn danger"
+                            onClick={() => removeType(typeIndex)}
+                          >
+                            Remove type
+                          </button>
+                        )}
+                      </div>
+
+                      <strong className="type-editor-title">
+                        Sizes & Prices
+                      </strong>
+
+                      {type.sizes.map((size, sizeIndex) => (
+                        <div
+                          className="variant-row"
+                          key={`type-${typeIndex}-size-${sizeIndex}`}
+                        >
                           <input
-                            type="text"
-                            placeholder="Type name e.g. Kolam Rice"
-                            value={
-                              type.name
-                            }
-                            onChange={(
-                              e,
-                            ) =>
-                              updateTypeName(
+                            type="number"
+                            min="0"
+                            step="any"
+                            placeholder="Amount"
+                            value={size.amount}
+                            onChange={(e) =>
+                              updateTypeSize(
                                 typeIndex,
-                                e.target
-                                  .value,
+                                sizeIndex,
+                                "amount",
+                                e.target.value,
                               )
-                            }
-                            maxLength={
-                              100
                             }
                           />
 
-                          {types.length >
-                            1 && (
+                          <select
+                            value={size.unit}
+                            onChange={(e) =>
+                              updateTypeSize(
+                                typeIndex,
+                                sizeIndex,
+                                "unit",
+                                e.target.value,
+                              )
+                            }
+                          >
+                            {UNITS.map((unit) => (
+                              <option key={unit} value={unit}>
+                                {unit}
+                              </option>
+                            ))}
+                          </select>
+
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="Price ₹"
+                            value={size.price}
+                            onChange={(e) =>
+                              updateTypeSize(
+                                typeIndex,
+                                sizeIndex,
+                                "price",
+                                e.target.value,
+                              )
+                            }
+                          />
+
+                          <input
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            placeholder="MRP ₹"
+                            value={size.mrp ?? ""}
+                            onChange={(e) =>
+                              updateTypeSize(
+                                typeIndex,
+                                sizeIndex,
+                                "mrp",
+                                e.target.value,
+                              )
+                            }
+                          />
+
+                          {type.sizes.length > 1 && (
                             <button
                               type="button"
                               className="icon-btn danger"
                               onClick={() =>
-                                removeType(
-                                  typeIndex,
-                                )
+                                removeTypeSize(typeIndex, sizeIndex)
                               }
                             >
-                              Remove type
+                              Remove
                             </button>
                           )}
                         </div>
+                      ))}
 
-                        <strong className="type-editor-title">
-                          Sizes & Prices
-                        </strong>
-
-                        {type.sizes.map(
-                          (
-                            size,
-                            sizeIndex,
-                          ) => (
-                            <div
-                              className="variant-row"
-                              key={`type-${typeIndex}-size-${sizeIndex}`}
-                            >
-                              <input
-                                type="number"
-                                min="0"
-                                step="any"
-                                placeholder="Amount"
-                                value={
-                                  size.amount
-                                }
-                                onChange={(
-                                  e,
-                                ) =>
-                                  updateTypeSize(
-                                    typeIndex,
-                                    sizeIndex,
-                                    "amount",
-                                    e
-                                      .target
-                                      .value,
-                                  )
-                                }
-                              />
-
-                              <select
-                                value={
-                                  size.unit
-                                }
-                                onChange={(
-                                  e,
-                                ) =>
-                                  updateTypeSize(
-                                    typeIndex,
-                                    sizeIndex,
-                                    "unit",
-                                    e
-                                      .target
-                                      .value,
-                                  )
-                                }
-                              >
-                                {UNITS.map(
-                                  (
-                                    unit,
-                                  ) => (
-                                    <option
-                                      key={
-                                        unit
-                                      }
-                                      value={
-                                        unit
-                                      }
-                                    >
-                                      {
-                                        unit
-                                      }
-                                    </option>
-                                  ),
-                                )}
-                              </select>
-
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="Price ₹"
-                                value={
-                                  size.price
-                                }
-                                onChange={(
-                                  e,
-                                ) =>
-                                  updateTypeSize(
-                                    typeIndex,
-                                    sizeIndex,
-                                    "price",
-                                    e
-                                      .target
-                                      .value,
-                                  )
-                                }
-                              />
-
-                              <input
-                                type="number"
-                                min="0"
-                                step="0.01"
-                                placeholder="MRP ₹"
-                                value={
-                                  size.mrp ??
-                                  ""
-                                }
-                                onChange={(
-                                  e,
-                                ) =>
-                                  updateTypeSize(
-                                    typeIndex,
-                                    sizeIndex,
-                                    "mrp",
-                                    e
-                                      .target
-                                      .value,
-                                  )
-                                }
-                              />
-
-                              {type.sizes
-                                .length >
-                                1 && (
-                                <button
-                                  type="button"
-                                  className="icon-btn danger"
-                                  onClick={() =>
-                                    removeTypeSize(
-                                      typeIndex,
-                                      sizeIndex,
-                                    )
-                                  }
-                                >
-                                  Remove
-                                </button>
-                              )}
-                            </div>
-                          ),
-                        )}
-
-                        <button
-                          type="button"
-                          className="btn btn-outline"
-                          onClick={() =>
-                            addTypeSize(
-                              typeIndex,
-                            )
-                          }
-                        >
-                          + Add size
-                        </button>
-                      </div>
-                    ),
-                  )}
+                      <button
+                        type="button"
+                        className="btn btn-outline"
+                        onClick={() => addTypeSize(typeIndex)}
+                      >
+                        + Add size
+                      </button>
+                    </div>
+                  ))}
 
                   <button
                     type="button"
@@ -2096,42 +1837,18 @@ export default function AdminProducts() {
 
               <label>
                 Category
-
                 <select
-                  value={
-                    form.category
-                  }
-                  onChange={(e) =>
-                    updateForm(
-                      "category",
-                      e.target
-                        .value,
-                    )
-                  }
+                  value={form.category}
+                  onChange={(e) => updateForm("category", e.target.value)}
                   required
                 >
-                  <option value="">
-                    Select category
-                  </option>
+                  <option value="">Select category</option>
 
-                  {categories.map(
-                    (
-                      category,
-                    ) => (
-                      <option
-                        key={
-                          category._id
-                        }
-                        value={
-                          category._id
-                        }
-                      >
-                        {
-                          category.name
-                        }
-                      </option>
-                    ),
-                  )}
+                  {categories.map((category) => (
+                    <option key={category._id} value={category._id}>
+                      {category.name}
+                    </option>
+                  ))}
                 </select>
               </label>
 
@@ -2139,18 +1856,9 @@ export default function AdminProducts() {
 
               <label>
                 Barcode
-
                 <input
-                  value={
-                    form.barcode
-                  }
-                  onChange={(e) =>
-                    updateForm(
-                      "barcode",
-                      e.target
-                        .value,
-                    )
-                  }
+                  value={form.barcode}
+                  onChange={(e) => updateForm("barcode", e.target.value)}
                   placeholder="For billing software reference"
                   maxLength={100}
                   inputMode="numeric"
@@ -2161,19 +1869,10 @@ export default function AdminProducts() {
 
               <label className="form-full">
                 Description
-
                 <textarea
                   rows={3}
-                  value={
-                    form.description
-                  }
-                  onChange={(e) =>
-                    updateForm(
-                      "description",
-                      e.target
-                        .value,
-                    )
-                  }
+                  value={form.description}
+                  onChange={(e) => updateForm("description", e.target.value)}
                   maxLength={1000}
                 />
               </label>
@@ -2181,83 +1880,51 @@ export default function AdminProducts() {
               {/* IMAGE */}
 
               <div className="product-image-upload form-full">
-                <label className="form-label">
-                  Product image
-                </label>
+                <label className="form-label">Product image</label>
 
                 <div className="image-upload-options">
                   <button
                     type="button"
                     className="image-upload-option"
-                    onClick={
-                      openCamera
-                    }
+                    onClick={openCamera}
                   >
-                    <span className="image-upload-icon">
-                      📷
-                    </span>
+                    <span className="image-upload-icon">📷</span>
 
                     <span>
-                      <strong>
-                        Take Photo
-                      </strong>
+                      <strong>Take Photo</strong>
 
-                      <small>
-                        Use camera
-                      </small>
+                      <small>Use camera</small>
                     </span>
                   </button>
 
                   <button
                     type="button"
                     className="image-upload-option"
-                    onClick={() =>
-                      fileInputRef.current?.click()
-                    }
+                    onClick={() => fileInputRef.current?.click()}
                   >
-                    <span className="image-upload-icon">
-                      🖼️
-                    </span>
+                    <span className="image-upload-icon">🖼️</span>
 
                     <span>
-                      <strong>
-                        Choose Image
-                      </strong>
+                      <strong>Choose Image</strong>
 
-                      <small>
-                        From device
-                      </small>
+                      <small>From device</small>
                     </span>
                   </button>
                 </div>
 
                 <input
-                  ref={
-                    fileInputRef
-                  }
+                  ref={fileInputRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp,image/gif"
-                  onChange={
-                    handleImageChange
-                  }
+                  onChange={handleImageChange}
                   hidden
                 />
 
                 {imagePreview && (
                   <div className="image-preview">
-                    <img
-                      src={
-                        imagePreview
-                      }
-                      alt="Product preview"
-                    />
+                    <img src={imagePreview} alt="Product preview" />
 
-                    <button
-                      type="button"
-                      onClick={
-                        removeImage
-                      }
-                    >
+                    <button type="button" onClick={removeImage}>
                       Remove
                     </button>
                   </div>
@@ -2269,28 +1936,27 @@ export default function AdminProducts() {
               <label className="form-grid-check">
                 <input
                   type="checkbox"
-                  checked={
-                    form.active
-                  }
-                  onChange={(e) =>
-                    updateForm(
-                      "active",
-                      e.target
-                        .checked,
-                    )
-                  }
+                  checked={form.active}
+                  onChange={(e) => updateForm("active", e.target.checked)}
                 />
-
                 Active
+              </label>
+
+              {/* FEATURED */}
+
+              <label className="form-grid-check">
+                <input
+                  type="checkbox"
+                  checked={form.featured}
+                  onChange={(e) => updateForm("featured", e.target.checked)}
+                />
+                Show in Featured Products
               </label>
 
               {/* ERROR */}
 
               {error && (
-                <p
-                  className="field-error form-full"
-                  role="alert"
-                >
+                <p className="field-error form-full" role="alert">
                   {error}
                 </p>
               )}
@@ -2302,9 +1968,7 @@ export default function AdminProducts() {
               <button
                 type="button"
                 className="btn btn-outline"
-                onClick={
-                  closeModal
-                }
+                onClick={closeModal}
                 disabled={saving}
               >
                 Cancel
@@ -2315,9 +1979,7 @@ export default function AdminProducts() {
                 className="btn btn-primary"
                 disabled={saving}
               >
-                {saving
-                  ? "Saving…"
-                  : "Save"}
+                {saving ? "Saving…" : "Save"}
               </button>
             </div>
           </form>
@@ -2330,40 +1992,26 @@ export default function AdminProducts() {
             <div
               className="camera-modal-backdrop"
               onMouseDown={(e) => {
-                if (
-                  e.target ===
-                  e.currentTarget
-                ) {
+                if (e.target === e.currentTarget) {
                   closeCamera();
                 }
               }}
             >
               <div
                 className="camera-modal"
-                onMouseDown={(e) =>
-                  e.stopPropagation()
-                }
+                onMouseDown={(e) => e.stopPropagation()}
               >
                 <div className="camera-modal-header">
                   <div>
-                    <h3>
-                      Take Product
-                      Photo
-                    </h3>
+                    <h3>Take Product Photo</h3>
 
-                    <p>
-                      Position the
-                      product inside
-                      the frame
-                    </p>
+                    <p>Position the product inside the frame</p>
                   </div>
 
                   <button
                     type="button"
                     className="camera-close-btn"
-                    onClick={
-                      closeCamera
-                    }
+                    onClick={closeCamera}
                     aria-label="Close camera"
                   >
                     ×
@@ -2372,28 +2020,18 @@ export default function AdminProducts() {
 
                 <div className="camera-preview-container">
                   <video
-                    ref={
-                      cameraVideoRef
-                    }
+                    ref={cameraVideoRef}
                     autoPlay
                     playsInline
                     muted
                     className="camera-video"
                   />
 
-                  <div
-                    className="camera-frame"
-                    aria-hidden="true"
-                  />
+                  <div className="camera-frame" aria-hidden="true" />
 
                   {cameraError && (
-                    <div
-                      className="camera-error"
-                      role="alert"
-                    >
-                      {
-                        cameraError
-                      }
+                    <div className="camera-error" role="alert">
+                      {cameraError}
                     </div>
                   )}
                 </div>
@@ -2402,9 +2040,7 @@ export default function AdminProducts() {
                   <button
                     type="button"
                     className="btn btn-outline"
-                    onClick={
-                      closeCamera
-                    }
+                    onClick={closeCamera}
                   >
                     Cancel
                   </button>
@@ -2412,16 +2048,10 @@ export default function AdminProducts() {
                   <button
                     type="button"
                     className="camera-capture-btn"
-                    onClick={
-                      capturePhoto
-                    }
-                    disabled={
-                      !!cameraError
-                    }
+                    onClick={capturePhoto}
+                    disabled={!!cameraError}
                   >
-                    <span>
-                      ●
-                    </span>
+                    <span>●</span>
                     Capture Photo
                   </button>
                 </div>

@@ -19,11 +19,21 @@
   const categorySchema = new mongoose.Schema(
     {
       name: { type: String, required: true, trim: true, unique: true },
-      slug: { type: String, required: true, unique: true, lowercase: true, index: true },
-      department: { type: String, enum: [...DEPARTMENTS, null], default: null },
+      slug: {
+        type: String,
+        required: true,
+        unique: true,
+        lowercase: true,
+        index: true,
+      },
+      department: {
+        type: String,
+        enum: DEPARTMENTS,
+        required: true,
+      },
       active: { type: Boolean, default: true },
     },
-    { timestamps: true }
+    { timestamps: true },
   );
 
   categorySchema.index({ department: 1, active: 1 });
