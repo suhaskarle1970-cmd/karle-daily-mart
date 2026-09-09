@@ -102,10 +102,11 @@ export default function Home() {
   ========================================================= */
 
   useEffect(() => {
-    const title = "Daily Mart Super Market | Online Grocery Shopping";
+    const title =
+      "Daily Mart Super Market | Grocery, Snacks & Household Essentials";
 
     const description =
-      "Shop grocery, kitchen essentials, snacks, drinks, beauty products, household essentials and stationery at Daily Mart Super Market.";
+      "Shop grocery, kitchen essentials, snacks, drinks, beauty and personal care products, household essentials and stationery at Daily Mart Super Market.";
 
     const siteUrl = "https://www.dailymartsupermarket.in/";
 
@@ -173,11 +174,27 @@ export default function Home() {
     // ORGANIZATION SCHEMA
     // ---------------------------------------------------------
 
-    const existingSchema = document.getElementById("organization-jsonld");
+    /* =========================================================
+       HOMEPAGE STRUCTURED DATA
+    ========================================================= */
 
-    if (existingSchema) {
-      existingSchema.remove();
+    const existingOrganizationSchema = document.getElementById(
+      "organization-jsonld",
+    );
+
+    if (existingOrganizationSchema) {
+      existingOrganizationSchema.remove();
     }
+
+    const existingWebsiteSchema = document.getElementById("website-jsonld");
+
+    if (existingWebsiteSchema) {
+      existingWebsiteSchema.remove();
+    }
+
+    // ---------------------------------------------------------
+    // ORGANIZATION
+    // ---------------------------------------------------------
 
     const organizationSchema = {
       "@context": "https://schema.org",
@@ -186,25 +203,58 @@ export default function Home() {
       url: siteUrl,
     };
 
-    const script = document.createElement("script");
+    const organizationScript = document.createElement("script");
 
-    script.id = "organization-jsonld";
+    organizationScript.id = "organization-jsonld";
 
-    script.type = "application/ld+json";
+    organizationScript.type = "application/ld+json";
 
-    script.textContent = JSON.stringify(organizationSchema);
+    organizationScript.textContent = JSON.stringify(organizationSchema);
 
-    document.head.appendChild(script);
+    document.head.appendChild(organizationScript);
+
+    // ---------------------------------------------------------
+    // WEBSITE
+    // ---------------------------------------------------------
+
+    const websiteSchema = {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      name: "Daily Mart Super Market",
+      url: siteUrl,
+    };
+
+    const websiteScript = document.createElement("script");
+
+    websiteScript.id = "website-jsonld";
+
+    websiteScript.type = "application/ld+json";
+
+    websiteScript.textContent = JSON.stringify(websiteSchema);
+
+    document.head.appendChild(websiteScript);
 
     // ---------------------------------------------------------
     // CLEANUP
     // ---------------------------------------------------------
 
-    return () => {
-      const schema = document.getElementById("organization-jsonld");
+        return () => {
+      const organizationSchema =
+        document.getElementById(
+          "organization-jsonld",
+        );
 
-      if (schema) {
-        schema.remove();
+      if (organizationSchema) {
+        organizationSchema.remove();
+      }
+
+      const websiteSchema =
+        document.getElementById(
+          "website-jsonld",
+        );
+
+      if (websiteSchema) {
+        websiteSchema.remove();
       }
     };
   }, []);

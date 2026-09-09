@@ -286,9 +286,7 @@ export default function HeroSlider({ slides }) {
           return (
             <div
               key={slide._id}
-              className={`hero-layer ${
-                active ? "is-active" : ""
-              }`}
+              className={`hero-layer ${active ? "is-active" : ""}`}
               aria-hidden={!active}
             >
               {/* ==================================================
@@ -298,24 +296,18 @@ export default function HeroSlider({ slides }) {
               <div className="hero-text-col">
                 {hasContent && (
                   <div className="hero-content-inner">
-                    {slide.heading && (
-                      <h1>
-                        {slide.heading}
-                      </h1>
-                    )}
+                    {slide.heading &&
+                      (slideIndex === 0 ? (
+                        <h1>{slide.heading}</h1>
+                      ) : (
+                        <h2>{slide.heading}</h2>
+                      ))}
 
-                    {slide.description && (
-                      <p>
-                        {slide.description}
-                      </p>
-                    )}
+                    {slide.description && <p>{slide.description}</p>}
 
                     {slide.ctaText && (
                       <Link
-                        to={
-                          slide.ctaLink ||
-                          "/products"
-                        }
+                        to={slide.ctaLink || "/products"}
                         className="btn btn-accent hero-cta"
                       >
                         {slide.ctaText}
@@ -331,42 +323,26 @@ export default function HeroSlider({ slides }) {
 
               <div className="hero-image-col">
                 {showFallback ? (
-                  <div
-                    className="hero-image-fallback"
-                    aria-hidden="true"
-                  />
+                  <div className="hero-image-fallback" aria-hidden="true" />
                 ) : (
                   <img
                     className="hero-image"
-                    src={getOptimizedImageUrl(
-                      slide.imageUrl,
-                      1200,
-                    )}
-                    alt={
-                      slide.heading ||
-                      DEFAULT_ALT
-                    }
+                    src={getOptimizedImageUrl(slide.imageUrl, 1200)}
+                    alt={slide.heading || DEFAULT_ALT}
                     decoding="async"
                     style={
                       slide.focalPoint
                         ? {
-                            objectPosition:
-                              slide.focalPoint,
+                            objectPosition: slide.focalPoint,
                           }
                         : undefined
                     }
-                    loading={
-                      slideIndex === 0
-                        ? "eager"
-                        : "lazy"
-                    }
+                    loading={slideIndex === 0 ? "eager" : "lazy"}
                     onError={() => {
-                      setFailed(
-                        (current) => ({
-                          ...current,
-                          [slide._id]: true,
-                        }),
-                      );
+                      setFailed((current) => ({
+                        ...current,
+                        [slide._id]: true,
+                      }));
                     }}
                   />
                 )}
