@@ -13,6 +13,7 @@ import sliderRoutes from "./routes/sliderRoutes.js";
 import orderRoutes from "./routes/orderRoutes.js";
 import dashboardRoutes from "./routes/dashboardRoutes.js";
 import configRoutes from "./routes/configRoutes.js";
+import sitemapRoutes from "./routes/sitemapRoutes.js";
 
 import { notFound, errorHandler } from "./middleware/errorHandler.js";
 
@@ -84,6 +85,8 @@ app.use("/api/orders", orderRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
 app.use("/api/config", configRoutes);
+
+app.use("/", sitemapRoutes);
 
 /* ============================================================
    404

@@ -148,11 +148,9 @@ export default function ProductDetail() {
   const [product, setProduct] = useState(null);
   const [status, setStatus] = useState("loading");
 
-  const [selectedVariant, setSelectedVariant] =
-    useState(null);
+  const [selectedVariant, setSelectedVariant] = useState(null);
 
-  const [selectedType, setSelectedType] =
-    useState(null);
+  const [selectedType, setSelectedType] = useState(null);
 
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
@@ -174,12 +172,9 @@ export default function ProductDetail() {
       setAdded(false);
 
       try {
-        const { data } = await api.get(
-          `/products/${id}`,
-          {
-            signal: controller.signal,
-          },
-        );
+        const { data } = await api.get(`/products/${id}`, {
+          signal: controller.signal,
+        });
 
         if (controller.signal.aborted) {
           return;
@@ -199,25 +194,18 @@ export default function ProductDetail() {
         ------------------------------------------------ */
 
         if (isTypeBasedProduct(fetchedProduct)) {
-          const firstType =
-            getFirstType(fetchedProduct);
+          const firstType = getFirstType(fetchedProduct);
 
-          const firstSize =
-            getFirstTypeSize(firstType);
+          const firstSize = getFirstTypeSize(firstType);
 
           setSelectedType(firstType);
           setSelectedVariant(firstSize);
-        }
-
-        /* -----------------------------------------------
+        } else {
+          /* -----------------------------------------------
            STANDARD PRODUCT / VARIANTS
         ------------------------------------------------ */
-
-        else {
           setSelectedType(null);
-          setSelectedVariant(
-            getFirstVariant(fetchedProduct),
-          );
+          setSelectedVariant(getFirstVariant(fetchedProduct));
         }
 
         setStatus("ready");
@@ -226,10 +214,7 @@ export default function ProductDetail() {
           return;
         }
 
-        console.error(
-          "Failed to load product:",
-          error,
-        );
+        console.error("Failed to load product:", error);
 
         setStatus("error");
       }
@@ -242,16 +227,345 @@ export default function ProductDetail() {
     };
   }, [id]);
 
+  // ============================================================
+  // SEO
+  // ============================================================
+
+  useEffect(() => {
+    if (!product) {
+      return;
+    }
+
+    const productName = product.name?.trim() || "Product";
+
+    const categoryName = product.category?.name?.trim() || "Grocery";
+
+    const description =
+      product.description?.trim() ||
+      `Buy ${productName} online from Daily Mart Super Market.`;
+
+    const productUrl = `https://www.dailymartsupermarket.in/products/${id}`;
+
+    const pageTitle = `${productName} | Daily Mart Super Market`;
+
+    // ==========================================================
+    // PAGE TITLE
+    // ==========================================================
+
+    document.title = pageTitle;
+
+    // ==========================================================
+    // META DESCRIPTION
+    // ==========================================================
+
+    let metaDescription = document.querySelector('meta[name="description"]');
+
+    if (!metaDescription) {
+      metaDescription = document.createElement("meta");
+
+      metaDescription.setAttribute("name", "description");
+
+      document.head.appendChild(metaDescription);
+    }
+
+    metaDescription.setAttribute("content", description.slice(0, 160));
+
+    // ==========================================================
+    // CANONICAL
+    // ==========================================================
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+
+    if (!canonical) {
+      canonical = document.createElement("link");
+
+      canonical.setAttribute("rel", "canonical");
+
+      document.head.appendChild(canonical);
+    }
+
+    canonical.setAttribute("href", productUrl);
+
+    // ==========================================================
+    // OPEN GRAPH
+    // ==========================================================
+
+    function setMetaProperty(property, content) {
+      let meta = document.querySelector(`meta[property="${property}"]`);
+
+      if (!meta) {
+        meta = document.createElement("meta");
+
+        meta.setAttribute("property", property);
+
+        document.head.appendChild(meta);
+      }
+
+      meta.setAttribute("content", content);
+    }
+
+    setMetaProperty("og:title", pageTitle);
+
+    setMetaProperty("og:description", description.slice(0, 160));
+
+    setMetaProperty("og:url", productUrl);
+
+    setMetaProperty("og:type", "product");
+
+    if (product.imageUrl) {
+      setMetaProperty("og:image", product.imageUrl);
+    }
+
+    // ==========================================================
+    // PRODUCT OFFERS
+    // ==========================================================
+
+    const offers = [];
+
+    // ----------------------------------------------------------
+    // TYPE-BASED PRODUCT
+    // ----------------------------------------------------------
+
+    if (isTypeBasedProduct(product) && Array.isArray(product.types)) {
+      product.types.forEach((type) => {
+        if (!Array.isArray(type?.sizes)) {
+          return;
+        }
+
+        type.sizes.forEach((size) => {
+          const price = Number(size?.price);
+
+          if (!Number.isFinite(price) || price < 0) {
+            return;
+          }
+
+          offers.push({
+            "@type": "Offer",
+
+            url: productUrl,
+
+            priceCurrency: "INR",
+
+            price: price.toFixed(2),
+
+            availability: "https://schema.org/InStock",
+
+            itemCondition: "https://schema.org/NewCondition",
+
+            seller: {
+              "@type": "Organization",
+              name: "Daily Mart Super Market",
+            },
+          });
+        });
+      });
+    }
+
+    // ----------------------------------------------------------
+    // STANDARD VARIANTS
+    // ----------------------------------------------------------
+    else if (Array.isArray(product.variants) && product.variants.length > 0) {
+      product.variants.forEach((variant) => {
+        const price = Number(variant?.price);
+
+        if (!Number.isFinite(price) || price < 0) {
+          return;
+        }
+
+        offers.push({
+          "@type": "Offer",
+
+          url: productUrl,
+
+          priceCurrency: "INR",
+
+          price: price.toFixed(2),
+
+          availability: "https://schema.org/InStock",
+
+          itemCondition: "https://schema.org/NewCondition",
+
+          seller: {
+            "@type": "Organization",
+            name: "Daily Mart Super Market",
+          },
+        });
+      });
+    }
+
+    // ----------------------------------------------------------
+    // NORMAL PRODUCT
+    // ----------------------------------------------------------
+    else {
+      const price = Number(product.price);
+
+      if (Number.isFinite(price) && price >= 0) {
+        offers.push({
+          "@type": "Offer",
+
+          url: productUrl,
+
+          priceCurrency: "INR",
+
+          price: price.toFixed(2),
+
+          availability: "https://schema.org/InStock",
+
+          itemCondition: "https://schema.org/NewCondition",
+
+          seller: {
+            "@type": "Organization",
+            name: "Daily Mart Super Market",
+          },
+        });
+      }
+    }
+
+    // ==========================================================
+    // PRODUCT STRUCTURED DATA
+    // ==========================================================
+
+    const existingProductSchema = document.getElementById("product-jsonld");
+
+    if (existingProductSchema) {
+      existingProductSchema.remove();
+    }
+
+    const schema = {
+      "@context": "https://schema.org",
+
+      "@type": "Product",
+
+      name: productName,
+
+      image: product.imageUrl ? [product.imageUrl] : [],
+
+      description: description,
+
+      category: categoryName,
+
+      url: productUrl,
+    };
+
+    // ----------------------------------------------------------
+    // ADD OFFERS ONLY WHEN VALID OFFERS EXIST
+    // ----------------------------------------------------------
+
+    if (offers.length === 1) {
+      schema.offers = offers[0];
+    }
+
+    if (offers.length > 1) {
+      const prices = offers.map((offer) => Number(offer.price));
+
+      schema.offers = {
+        "@type": "AggregateOffer",
+
+        url: productUrl,
+
+        priceCurrency: "INR",
+
+        lowPrice: Math.min(...prices).toFixed(2),
+
+        highPrice: Math.max(...prices).toFixed(2),
+
+        offerCount: offers.length,
+      };
+    }
+
+    // ==========================================================
+    // ADD PRODUCT JSON-LD
+    // ==========================================================
+
+    const productScript = document.createElement("script");
+
+    productScript.id = "product-jsonld";
+
+    productScript.type = "application/ld+json";
+
+    productScript.textContent = JSON.stringify(schema);
+
+    document.head.appendChild(productScript);
+
+    // ==========================================================
+    // BREADCRUMB STRUCTURED DATA
+    // ==========================================================
+
+    const existingBreadcrumb = document.getElementById("breadcrumb-jsonld");
+
+    if (existingBreadcrumb) {
+      existingBreadcrumb.remove();
+    }
+
+    const breadcrumbSchema = {
+      "@context": "https://schema.org",
+
+      "@type": "BreadcrumbList",
+
+      itemListElement: [
+        {
+          "@type": "ListItem",
+
+          position: 1,
+
+          name: "Home",
+
+          item: "https://www.dailymartsupermarket.in/",
+        },
+
+        {
+          "@type": "ListItem",
+
+          position: 2,
+
+          name: "Products",
+
+          item: "https://www.dailymartsupermarket.in/products",
+        },
+
+        {
+          "@type": "ListItem",
+
+          position: 3,
+
+          name: productName,
+
+          item: productUrl,
+        },
+      ],
+    };
+
+    const breadcrumbScript = document.createElement("script");
+
+    breadcrumbScript.id = "breadcrumb-jsonld";
+
+    breadcrumbScript.type = "application/ld+json";
+
+    breadcrumbScript.textContent = JSON.stringify(breadcrumbSchema);
+
+    document.head.appendChild(breadcrumbScript);
+
+    // ==========================================================
+    // CLEANUP
+    // ==========================================================
+
+    return () => {
+      if (productScript.parentNode) {
+        productScript.parentNode.removeChild(productScript);
+      }
+
+      if (breadcrumbScript.parentNode) {
+        breadcrumbScript.parentNode.removeChild(breadcrumbScript);
+      }
+    };
+  }, [product, id]);
+
   /* =======================================================
      LOADING
   ======================================================= */
 
   if (status === "loading") {
-    return (
-      <div className="container section">
-        Loading…
-      </div>
-    );
+    return <div className="container section">Loading…</div>;
   }
 
   /* =======================================================
@@ -261,9 +575,7 @@ export default function ProductDetail() {
   if (status === "error" || !product) {
     return (
       <div className="container section">
-        <ErrorState
-          message="We couldn't find that product."
-        />
+        <ErrorState message="We couldn't find that product." />
 
         <div
           style={{
@@ -271,10 +583,7 @@ export default function ProductDetail() {
             marginTop: 16,
           }}
         >
-          <Link
-            to="/products"
-            className="btn btn-outline"
-          >
+          <Link to="/products" className="btn btn-outline">
             Back to shop
           </Link>
         </div>
@@ -286,11 +595,9 @@ export default function ProductDetail() {
      PRODUCT TYPE
   ======================================================= */
 
-  const isTypeBased =
-    isTypeBasedProduct(product);
+  const isTypeBased = isTypeBasedProduct(product);
 
-  const hasVariants =
-    hasProductVariants(product);
+  const hasVariants = hasProductVariants(product);
 
   /* =======================================================
      CURRENT PRICE
@@ -298,25 +605,14 @@ export default function ProductDetail() {
 
   const displayPrice = getSafeNumber(
     selectedVariant?.price ??
-      (!isTypeBased && !hasVariants
-        ? product.price
-        : 0),
+      (!isTypeBased && !hasVariants ? product.price : 0),
   );
 
   const displayMrp = getSafeNumber(
-    selectedVariant?.mrp ??
-      (!isTypeBased && !hasVariants
-        ? product.mrp
-        : 0),
+    selectedVariant?.mrp ?? (!isTypeBased && !hasVariants ? product.mrp : 0),
   );
 
-  const {
-    hasDiscount,
-    discountPct,
-  } = getDiscount(
-    displayPrice,
-    displayMrp,
-  );
+  const { hasDiscount, discountPct } = getDiscount(displayPrice, displayMrp);
 
   /* =======================================================
      TYPE CHANGE
@@ -325,8 +621,7 @@ export default function ProductDetail() {
   function handleTypeChange(type) {
     setSelectedType(type);
 
-    const firstSize =
-      getFirstTypeSize(type);
+    const firstSize = getFirstTypeSize(type);
 
     setSelectedVariant(firstSize);
     setAdded(false);
@@ -347,30 +642,17 @@ export default function ProductDetail() {
 
   function handleAdd() {
     if (isTypeBased) {
-      if (
-        !selectedType ||
-        !selectedVariant
-      ) {
+      if (!selectedType || !selectedVariant) {
         return;
       }
 
-      addItem(
-        product,
-        quantity,
-        selectedVariant,
-        selectedType,
-      );
+      addItem(product, quantity, selectedVariant, selectedType);
 
       setAdded(true);
       return;
     }
 
-    addItem(
-      product,
-      quantity,
-      selectedVariant,
-      null,
-    );
+    addItem(product, quantity, selectedVariant, null);
 
     setAdded(true);
   }
@@ -381,21 +663,15 @@ export default function ProductDetail() {
 
   return (
     <div className="container section pd">
-
       {/* =====================================================
           PRODUCT IMAGE
       ===================================================== */}
 
       <div className="pd-image">
         {product.imageUrl ? (
-          <img
-            src={product.imageUrl}
-            alt={product.name}
-          />
+          <img src={product.imageUrl} alt={product.name} />
         ) : (
-          <div className="product-card-image-placeholder">
-            No image
-          </div>
+          <div className="product-card-image-placeholder">No image</div>
         )}
       </div>
 
@@ -404,13 +680,10 @@ export default function ProductDetail() {
       ===================================================== */}
 
       <div className="pd-info">
-
         {/* CATEGORY */}
 
         {product.category?.name && (
-          <p className="pd-category">
-            {product.category.name}
-          </p>
+          <p className="pd-category">{product.category.name}</p>
         )}
 
         {/* PRODUCT NAME */}
@@ -422,19 +695,13 @@ export default function ProductDetail() {
         =================================================== */}
 
         <div className="pd-price-section">
-          <span className="pd-price">
-            {formatCurrency(displayPrice)}
-          </span>
+          <span className="pd-price">{formatCurrency(displayPrice)}</span>
 
           {hasDiscount && (
             <>
-              <span className="pd-mrp">
-                {formatCurrency(displayMrp)}
-              </span>
+              <span className="pd-mrp">{formatCurrency(displayMrp)}</span>
 
-              <span className="pd-discount">
-                {discountPct}% off
-              </span>
+              <span className="pd-discount">{discountPct}% off</span>
             </>
           )}
         </div>
@@ -445,37 +712,23 @@ export default function ProductDetail() {
 
         {isTypeBased && (
           <div className="pd-variants">
-            <label className="pd-variants-label">
-              Select Type
-            </label>
+            <label className="pd-variants-label">Select Type</label>
 
             <div className="pd-variant-options">
-              {product.types.map(
-                (type, index) => {
-                  const isSelected =
-                    selectedType?.name ===
-                    type.name;
+              {product.types.map((type, index) => {
+                const isSelected = selectedType?.name === type.name;
 
-                  return (
-                    <button
-                      type="button"
-                      key={`${type.name}-${index}`}
-                      className={`pd-variant-btn ${
-                        isSelected
-                          ? "selected"
-                          : ""
-                      }`}
-                      onClick={() =>
-                        handleTypeChange(type)
-                      }
-                    >
-                      <span className="pd-variant-size">
-                        {type.name}
-                      </span>
-                    </button>
-                  );
-                },
-              )}
+                return (
+                  <button
+                    type="button"
+                    key={`${type.name}-${index}`}
+                    className={`pd-variant-btn ${isSelected ? "selected" : ""}`}
+                    onClick={() => handleTypeChange(type)}
+                  >
+                    <span className="pd-variant-size">{type.name}</span>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
@@ -486,38 +739,25 @@ export default function ProductDetail() {
 
         {isTypeBased &&
           selectedType &&
-          Array.isArray(
-            selectedType.sizes,
-          ) &&
+          Array.isArray(selectedType.sizes) &&
           selectedType.sizes.length > 0 && (
             <div className="pd-variants">
-              <label className="pd-variants-label">
-                Select Size
-              </label>
+              <label className="pd-variants-label">Select Size</label>
 
               <div className="pd-variant-options">
-                {selectedType.sizes.map(
-                  (size, index) => (
-                    <VariantOption
-                      key={`${size.amount}-${size.unit}-${index}`}
-                      variant={size}
-                      index={index}
-                      selected={
-                        selectedVariant?.unit ===
-                          size.unit &&
-                        getSafeNumber(
-                          selectedVariant?.amount,
-                        ) ===
-                          getSafeNumber(
-                            size.amount,
-                          )
-                      }
-                      onSelect={
-                        handleVariantChange
-                      }
-                    />
-                  ),
-                )}
+                {selectedType.sizes.map((size, index) => (
+                  <VariantOption
+                    key={`${size.amount}-${size.unit}-${index}`}
+                    variant={size}
+                    index={index}
+                    selected={
+                      selectedVariant?.unit === size.unit &&
+                      getSafeNumber(selectedVariant?.amount) ===
+                        getSafeNumber(size.amount)
+                    }
+                    onSelect={handleVariantChange}
+                  />
+                ))}
               </div>
             </div>
           )}
@@ -526,48 +766,34 @@ export default function ProductDetail() {
             STANDARD PRODUCT SIZES
         =================================================== */}
 
-        {!isTypeBased &&
-          hasVariants && (
-            <div className="pd-variants">
-              <label className="pd-variants-label">
-                Select Size
-              </label>
+        {!isTypeBased && hasVariants && (
+          <div className="pd-variants">
+            <label className="pd-variants-label">Select Size</label>
 
-              <div className="pd-variant-options">
-                {product.variants.map(
-                  (variant, index) => (
-                    <VariantOption
-                      key={`${variant.amount}-${variant.unit}-${index}`}
-                      variant={variant}
-                      index={index}
-                      selected={
-                        selectedVariant?.unit ===
-                          variant.unit &&
-                        getSafeNumber(
-                          selectedVariant?.amount,
-                        ) ===
-                          getSafeNumber(
-                            variant.amount,
-                          )
-                      }
-                      onSelect={
-                        handleVariantChange
-                      }
-                    />
-                  ),
-                )}
-              </div>
+            <div className="pd-variant-options">
+              {product.variants.map((variant, index) => (
+                <VariantOption
+                  key={`${variant.amount}-${variant.unit}-${index}`}
+                  variant={variant}
+                  index={index}
+                  selected={
+                    selectedVariant?.unit === variant.unit &&
+                    getSafeNumber(selectedVariant?.amount) ===
+                      getSafeNumber(variant.amount)
+                  }
+                  onSelect={handleVariantChange}
+                />
+              ))}
             </div>
-          )}
+          </div>
+        )}
 
         {/* ===================================================
             DESCRIPTION
         =================================================== */}
 
         {product.description && (
-          <p className="pd-description">
-            {product.description}
-          </p>
+          <p className="pd-description">{product.description}</p>
         )}
 
         {/* ===================================================
@@ -575,32 +801,22 @@ export default function ProductDetail() {
         =================================================== */}
 
         <div className="pd-quantity">
-          <label htmlFor="qty">
-            Quantity
-          </label>
+          <label htmlFor="qty">Quantity</label>
 
           <div className="pd-quantity-control">
             <button
               type="button"
-              onClick={() =>
-                setQuantity((q) =>
-                  Math.max(1, q - 1),
-                )
-              }
+              onClick={() => setQuantity((q) => Math.max(1, q - 1))}
               aria-label="Decrease quantity"
             >
               −
             </button>
 
-            <span id="qty">
-              {quantity}
-            </span>
+            <span id="qty">{quantity}</span>
 
             <button
               type="button"
-              onClick={() =>
-                setQuantity((q) => q + 1)
-              }
+              onClick={() => setQuantity((q) => q + 1)}
               aria-label="Increase quantity"
             >
               +
@@ -616,15 +832,9 @@ export default function ProductDetail() {
           type="button"
           className="btn btn-primary pd-add"
           onClick={handleAdd}
-          disabled={
-            isTypeBased &&
-            (!selectedType ||
-              !selectedVariant)
-          }
+          disabled={isTypeBased && (!selectedType || !selectedVariant)}
         >
-          {added
-            ? "Added ✓"
-            : "Add to cart"}
+          {added ? "Added ✓" : "Add to cart"}
         </button>
 
         {/* ===================================================
@@ -632,10 +842,7 @@ export default function ProductDetail() {
         =================================================== */}
 
         {added && (
-          <Link
-            to="/cart"
-            className="pd-cart-link"
-          >
+          <Link to="/cart" className="pd-cart-link">
             View cart →
           </Link>
         )}

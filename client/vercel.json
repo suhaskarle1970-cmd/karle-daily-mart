@@ -1,6 +1,10 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://karle-daily-mart-api.onrender.com/sitemap.xml"
+    },
+    {
       "source": "/((?!robots\\.txt$|sitemap\\.xml$).*)",
       "destination": "/index.html"
     }

@@ -98,6 +98,118 @@ export default function Home() {
   }, [load]);
 
   /* =========================================================
+     HOMEPAGE SEO
+  ========================================================= */
+
+  useEffect(() => {
+    const title = "Daily Mart Super Market | Online Grocery Shopping";
+
+    const description =
+      "Shop grocery, kitchen essentials, snacks, drinks, beauty products, household essentials and stationery at Daily Mart Super Market.";
+
+    const siteUrl = "https://www.dailymartsupermarket.in/";
+
+    // ---------------------------------------------------------
+    // PAGE TITLE
+    // ---------------------------------------------------------
+
+    document.title = title;
+
+    // ---------------------------------------------------------
+    // META DESCRIPTION
+    // ---------------------------------------------------------
+
+    let metaDescription = document.querySelector('meta[name="description"]');
+
+    if (!metaDescription) {
+      metaDescription = document.createElement("meta");
+      metaDescription.setAttribute("name", "description");
+      document.head.appendChild(metaDescription);
+    }
+
+    metaDescription.setAttribute("content", description);
+
+    // ---------------------------------------------------------
+    // CANONICAL
+    // ---------------------------------------------------------
+
+    let canonical = document.querySelector('link[rel="canonical"]');
+
+    if (!canonical) {
+      canonical = document.createElement("link");
+      canonical.setAttribute("rel", "canonical");
+      document.head.appendChild(canonical);
+    }
+
+    canonical.setAttribute("href", siteUrl);
+
+    // ---------------------------------------------------------
+    // OPEN GRAPH
+    // ---------------------------------------------------------
+
+    const setMetaProperty = (property, content) => {
+      let meta = document.querySelector(`meta[property="${property}"]`);
+
+      if (!meta) {
+        meta = document.createElement("meta");
+
+        meta.setAttribute("property", property);
+
+        document.head.appendChild(meta);
+      }
+
+      meta.setAttribute("content", content);
+    };
+
+    setMetaProperty("og:title", title);
+
+    setMetaProperty("og:description", description);
+
+    setMetaProperty("og:url", siteUrl);
+
+    setMetaProperty("og:type", "website");
+
+    // ---------------------------------------------------------
+    // ORGANIZATION SCHEMA
+    // ---------------------------------------------------------
+
+    const existingSchema = document.getElementById("organization-jsonld");
+
+    if (existingSchema) {
+      existingSchema.remove();
+    }
+
+    const organizationSchema = {
+      "@context": "https://schema.org",
+      "@type": "Organization",
+      name: "Daily Mart Super Market",
+      url: siteUrl,
+    };
+
+    const script = document.createElement("script");
+
+    script.id = "organization-jsonld";
+
+    script.type = "application/ld+json";
+
+    script.textContent = JSON.stringify(organizationSchema);
+
+    document.head.appendChild(script);
+
+    // ---------------------------------------------------------
+    // CLEANUP
+    // ---------------------------------------------------------
+
+    return () => {
+      const schema = document.getElementById("organization-jsonld");
+
+      if (schema) {
+        schema.remove();
+      }
+    };
+  }, []);
+
+  /* =========================================================
      ERROR STATE
   ========================================================= */
 
@@ -144,10 +256,7 @@ export default function Home() {
         ) : (
           <div className="product-grid featured-grid">
             {featured.map((product) => (
-              <ProductCard
-                key={product._id}
-                product={product}
-              />
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
         )}
@@ -210,8 +319,7 @@ export default function Home() {
 
       {status === "ready" &&
         DEPARTMENTS.map((department) => {
-          const products =
-            departmentProducts[department.id] || [];
+          const products = departmentProducts[department.id] || [];
 
           // Don't render empty departments.
           if (products.length === 0) {
@@ -244,13 +352,9 @@ export default function Home() {
                   {/* TITLE + SUBTITLE */}
 
                   <div className="dept-heading-text">
-                    <h2 className="dept-label">
-                      {department.label}
-                    </h2>
+                    <h2 className="dept-label">{department.label}</h2>
 
-                    <div className="dept-sublabel">
-                      {department.sublabel}
-                    </div>
+                    <div className="dept-sublabel">{department.sublabel}</div>
                   </div>
                 </div>
 
@@ -270,10 +374,7 @@ export default function Home() {
 
               <div className="product-grid dept-product-grid">
                 {products.map((product) => (
-                  <ProductCard
-                    key={product._id}
-                    product={product}
-                  />
+                  <ProductCard key={product._id} product={product} />
                 ))}
               </div>
             </section>
