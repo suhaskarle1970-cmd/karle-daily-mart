@@ -220,12 +220,9 @@ export default function AdminProducts() {
 
   const [variants, setVariants] = useState([]);
 
-  const [pricingType, setPricingType] =
-    useState("standard");
+  const [pricingType, setPricingType] = useState("standard");
 
-  const [types, setTypes] = useState([
-    createEmptyType(),
-  ]);
+  const [types, setTypes] = useState([createEmptyType()]);
 
   const [imageFile, setImageFile] = useState(null);
   const [imagePreview, setImagePreview] = useState("");
@@ -254,14 +251,11 @@ export default function AdminProducts() {
 
     async function loadCategories() {
       try {
-        const { data } = await api.get(
-          "/categories",
-          {
-            params: {
-              includeInactive: true,
-            },
+        const { data } = await api.get("/categories", {
+          params: {
+            includeInactive: true,
           },
-        );
+        });
 
         if (mounted) {
           setCategories(data.categories || []);
@@ -303,19 +297,15 @@ export default function AdminProducts() {
     setStatus("loading");
 
     try {
-      const { data } = await api.get(
-        "/products",
-        {
-          params: {
-            page,
-            limit: 20,
-            includeInactive: true,
-            search: search || undefined,
-            category:
-              categoryFilter || undefined,
-          },
+      const { data } = await api.get("/products", {
+        params: {
+          page,
+          limit: 20,
+          includeInactive: true,
+          search: search || undefined,
+          category: categoryFilter || undefined,
         },
-      );
+      });
 
       setProducts(data.products || []);
       setPagination(data.pagination || null);
@@ -337,10 +327,7 @@ export default function AdminProducts() {
 
   useEffect(() => {
     return () => {
-      if (
-        imagePreview &&
-        imagePreview.startsWith("blob:")
-      ) {
+      if (imagePreview && imagePreview.startsWith("blob:")) {
         URL.revokeObjectURL(imagePreview);
       }
     };
@@ -352,9 +339,7 @@ export default function AdminProducts() {
 
   const stopCamera = useCallback(() => {
     if (cameraStreamRef.current) {
-      cameraStreamRef.current
-        .getTracks()
-        .forEach((track) => track.stop());
+      cameraStreamRef.current.getTracks().forEach((track) => track.stop());
 
       cameraStreamRef.current = null;
     }
@@ -387,9 +372,7 @@ export default function AdminProducts() {
 
     setPricingType("standard");
 
-    setTypes([
-      createEmptyType(),
-    ]);
+    setTypes([createEmptyType()]);
 
     setImageFile(null);
     setImagePreview("");
@@ -417,8 +400,7 @@ export default function AdminProducts() {
   function openEdit(product) {
     closeCamera();
 
-    const currentPricingType =
-      product.pricingType || "standard";
+    const currentPricingType = product.pricingType || "standard";
 
     setForm({
       name: product.name || "",
@@ -434,25 +416,18 @@ export default function AdminProducts() {
     setVariants(
       Array.isArray(product.variants)
         ? product.variants.map((variant) => ({
-            unit:
-              variant.unit || "kg",
-            amount:
-              variant.amount ?? "",
-            price:
-              variant.price ?? "",
-            mrp:
-              variant.mrp ?? "",
+            unit: variant.unit || "kg",
+            amount: variant.amount ?? "",
+            price: variant.price ?? "",
+            mrp: variant.mrp ?? "",
           }))
         : [],
     );
 
-    setPricingType(
-      currentPricingType,
-    );
+    setPricingType(currentPricingType);
 
     if (
-      currentPricingType ===
-        "type-based" &&
+      currentPricingType === "type-based" &&
       Array.isArray(product.types) &&
       product.types.length > 0
     ) {
@@ -460,31 +435,18 @@ export default function AdminProducts() {
         product.types.map((type) => ({
           name: type.name || "",
           sizes:
-            Array.isArray(type.sizes) &&
-            type.sizes.length > 0
-              ? type.sizes.map(
-                  (size) => ({
-                    unit:
-                      size.unit ||
-                      "kg",
-                    amount:
-                      size.amount ??
-                      "",
-                    price:
-                      size.price ??
-                      "",
-                    mrp:
-                      size.mrp ??
-                      "",
-                  }),
-                )
+            Array.isArray(type.sizes) && type.sizes.length > 0
+              ? type.sizes.map((size) => ({
+                  unit: size.unit || "kg",
+                  amount: size.amount ?? "",
+                  price: size.price ?? "",
+                  mrp: size.mrp ?? "",
+                }))
               : [createEmptySize()],
         })),
       );
     } else {
-      setTypes([
-        createEmptyType(),
-      ]);
+      setTypes([createEmptyType()]);
     }
 
     setImageFile(null);
@@ -529,16 +491,12 @@ export default function AdminProducts() {
     setError("");
 
     if (value === "standard") {
-      setTypes([
-        createEmptyType(),
-      ]);
+      setTypes([createEmptyType()]);
     }
 
     if (value === "type-based") {
       setVariants([]);
-      setTypes([
-        createEmptyType(),
-      ]);
+      setTypes([createEmptyType()]);
 
       setForm((current) => ({
         ...current,
@@ -557,19 +515,13 @@ export default function AdminProducts() {
 
     for (const variant of variants) {
       if (
-        !isValidNonNegativeNumber(
-          variant.amount,
-        ) ||
+        !isValidNonNegativeNumber(variant.amount) ||
         Number(variant.amount) <= 0
       ) {
         return "Every size needs a positive amount.";
       }
 
-      if (
-        !isValidNonNegativeNumber(
-          variant.price,
-        )
-      ) {
+      if (!isValidNonNegativeNumber(variant.price)) {
         return "Every size needs a valid price.";
       }
 
@@ -578,25 +530,16 @@ export default function AdminProducts() {
         variant.mrp !== null &&
         variant.mrp !== undefined
       ) {
-        if (
-          !isValidNonNegativeNumber(
-            variant.mrp,
-          )
-        ) {
+        if (!isValidNonNegativeNumber(variant.mrp)) {
           return "Every MRP must be a valid number.";
         }
 
-        if (
-          Number(variant.mrp) <
-          Number(variant.price)
-        ) {
+        if (Number(variant.mrp) < Number(variant.price)) {
           return "MRP cannot be lower than selling price.";
         }
       }
 
-      const key = `${Number(
-        variant.amount,
-      )}-${variant.unit}`;
+      const key = `${Number(variant.amount)}-${variant.unit}`;
 
       if (seen.has(key)) {
         return `Duplicate size found: ${variant.amount} ${variant.unit}.`;
@@ -620,28 +563,21 @@ export default function AdminProducts() {
     const typeNames = new Set();
 
     for (const type of types) {
-      const typeName =
-        String(type.name || "").trim();
+      const typeName = String(type.name || "").trim();
 
       if (!typeName) {
         return "Every product type needs a name.";
       }
 
-      const normalizedName =
-        typeName.toLowerCase();
+      const normalizedName = typeName.toLowerCase();
 
       if (typeNames.has(normalizedName)) {
         return `Duplicate product type: ${typeName}.`;
       }
 
-      typeNames.add(
-        normalizedName,
-      );
+      typeNames.add(normalizedName);
 
-      if (
-        !Array.isArray(type.sizes) ||
-        type.sizes.length === 0
-      ) {
+      if (!Array.isArray(type.sizes) || type.sizes.length === 0) {
         return `Add at least one size for ${typeName}.`;
       }
 
@@ -649,46 +585,27 @@ export default function AdminProducts() {
 
       for (const size of type.sizes) {
         if (
-          !isValidNonNegativeNumber(
-            size.amount,
-          ) ||
+          !isValidNonNegativeNumber(size.amount) ||
           Number(size.amount) <= 0
         ) {
           return `Every size in ${typeName} needs a positive amount.`;
         }
 
-        if (
-          !isValidNonNegativeNumber(
-            size.price,
-          )
-        ) {
+        if (!isValidNonNegativeNumber(size.price)) {
           return `Every size in ${typeName} needs a valid price.`;
         }
 
-        if (
-          size.mrp !== "" &&
-          size.mrp !== null &&
-          size.mrp !== undefined
-        ) {
-          if (
-            !isValidNonNegativeNumber(
-              size.mrp,
-            )
-          ) {
+        if (size.mrp !== "" && size.mrp !== null && size.mrp !== undefined) {
+          if (!isValidNonNegativeNumber(size.mrp)) {
             return `Every MRP in ${typeName} must be valid.`;
           }
 
-          if (
-            Number(size.mrp) <
-            Number(size.price)
-          ) {
+          if (Number(size.mrp) < Number(size.price)) {
             return `MRP cannot be lower than selling price for ${typeName}.`;
           }
         }
 
-        const sizeKey = `${Number(
-          size.amount,
-        )}-${size.unit}`;
+        const sizeKey = `${Number(size.amount)}-${size.unit}`;
 
         if (sizeKeys.has(sizeKey)) {
           return `Duplicate size ${size.amount} ${size.unit} in ${typeName}.`;
@@ -721,39 +638,20 @@ export default function AdminProducts() {
     }
 
     if (pricingType === "standard") {
-      if (
-        form.price === "" &&
-        variants.length === 0
-      ) {
+      if (form.price === "" && variants.length === 0) {
         return "Enter a product price or add at least one size.";
       }
 
-      if (
-        form.price !== "" &&
-        !isValidNonNegativeNumber(
-          form.price,
-        )
-      ) {
+      if (form.price !== "" && !isValidNonNegativeNumber(form.price)) {
         return "Price must be a valid non-negative number.";
       }
 
-      if (
-        form.mrp !== "" &&
-        form.mrp !== null &&
-        form.mrp !== undefined
-      ) {
-        if (
-          !isValidNonNegativeNumber(
-            form.mrp,
-          )
-        ) {
+      if (form.mrp !== "" && form.mrp !== null && form.mrp !== undefined) {
+        if (!isValidNonNegativeNumber(form.mrp)) {
           return "MRP must be a valid non-negative number.";
         }
 
-        if (
-          Number(form.mrp) <
-          Number(form.price || 0)
-        ) {
+        if (Number(form.mrp) < Number(form.price || 0)) {
           return "MRP cannot be lower than selling price.";
         }
       }
@@ -771,39 +669,22 @@ export default function AdminProducts() {
   function buildFormData() {
     const fd = new FormData();
 
-    Object.entries(form).forEach(
-      ([key, value]) => {
-        fd.append(
-          key,
-          value ?? "",
-        );
-      },
-    );
+    Object.entries(form).forEach(([key, value]) => {
+      fd.append(key, value ?? "");
+    });
 
-    fd.append(
-      "pricingType",
-      pricingType,
-    );
+    fd.append("pricingType", pricingType);
 
     fd.append(
       "variants",
       JSON.stringify(
         pricingType === "standard"
-          ? variants.map(
-              (variant) => ({
-                unit: variant.unit,
-                amount: Number(
-                  variant.amount,
-                ),
-                price: Number(
-                  variant.price,
-                ),
-                mrp:
-                  normalizeOptionalNumber(
-                    variant.mrp,
-                  ),
-              }),
-            )
+          ? variants.map((variant) => ({
+              unit: variant.unit,
+              amount: Number(variant.amount),
+              price: Number(variant.price),
+              mrp: normalizeOptionalNumber(variant.mrp),
+            }))
           : [],
       ),
     );
@@ -811,41 +692,22 @@ export default function AdminProducts() {
     fd.append(
       "types",
       JSON.stringify(
-        pricingType ===
-          "type-based"
-          ? types.map(
-              (type) => ({
-                name: type.name.trim(),
-                sizes:
-                  type.sizes.map(
-                    (size) => ({
-                      unit:
-                        size.unit,
-                      amount:
-                        Number(
-                          size.amount,
-                        ),
-                      price:
-                        Number(
-                          size.price,
-                        ),
-                      mrp:
-                        normalizeOptionalNumber(
-                          size.mrp,
-                        ),
-                    }),
-                  ),
-              }),
-            )
+        pricingType === "type-based"
+          ? types.map((type) => ({
+              name: type.name.trim(),
+              sizes: type.sizes.map((size) => ({
+                unit: size.unit,
+                amount: Number(size.amount),
+                price: Number(size.price),
+                mrp: normalizeOptionalNumber(size.mrp),
+              })),
+            }))
           : [],
       ),
     );
 
     if (imageFile) {
-      fd.append(
-        "image",
-        imageFile,
-      );
+      fd.append("image", imageFile);
     }
 
     return fd;
@@ -860,13 +722,10 @@ export default function AdminProducts() {
 
     if (saving) return;
 
-    const validationError =
-      validateForm();
+    const validationError = validateForm();
 
     if (validationError) {
-      setError(
-        validationError,
-      );
+      setError(validationError);
       return;
     }
 
@@ -874,21 +733,12 @@ export default function AdminProducts() {
     setError("");
 
     try {
-      const fd =
-        buildFormData();
+      const fd = buildFormData();
 
-      if (
-        modal.mode === "create"
-      ) {
-        await api.post(
-          "/products",
-          fd,
-        );
+      if (modal.mode === "create") {
+        await api.post("/products", fd);
       } else {
-        await api.put(
-          `/products/${modal.data._id}`,
-          fd,
-        );
+        await api.put(`/products/${modal.data._id}`, fd);
       }
 
       closeCamera();
@@ -897,11 +747,7 @@ export default function AdminProducts() {
 
       await loadProducts();
     } catch (err) {
-      setError(
-        err.response?.data
-          ?.message ||
-          "Could not save product.",
-      );
+      setError(err.response?.data?.message || "Could not save product.");
     } finally {
       setSaving(false);
     }
@@ -911,30 +757,21 @@ export default function AdminProducts() {
      DELETE
   ========================================================= */
 
-  async function handleDelete(
-    product,
-  ) {
-    const confirmed =
-      window.confirm(
-        `Delete "${product.name}"?\n\nThis will also remove its product image from Cloudinary if your server is configured to do so.`,
-      );
+  async function handleDelete(product) {
+    const confirmed = window.confirm(
+      `Delete "${product.name}"?\n\nThis will also remove its product image from Cloudinary if your server is configured to do so.`,
+    );
 
     if (!confirmed) {
       return;
     }
 
     try {
-      await api.delete(
-        `/products/${product._id}`,
-      );
+      await api.delete(`/products/${product._id}`);
 
       await loadProducts();
     } catch (err) {
-      window.alert(
-        err.response?.data
-          ?.message ||
-          "Could not delete product.",
-      );
+      window.alert(err.response?.data?.message || "Could not delete product.");
     }
   }
 
@@ -942,45 +779,58 @@ export default function AdminProducts() {
      TOGGLE ACTIVE
   ========================================================= */
 
-  async function toggleActive(
-    product,
-  ) {
-    const nextActive =
-      !product.active;
+  async function toggleActive(product) {
+    const nextActive = !product.active;
 
     try {
-      const fd =
-        new FormData();
+      const fd = new FormData();
 
-      fd.append(
-        "active",
-        String(nextActive),
+      fd.append("active", String(nextActive));
+
+      await api.put(`/products/${product._id}`, fd);
+
+      setProducts((current) =>
+        current.map((item) =>
+          item._id === product._id
+            ? {
+                ...item,
+                active: nextActive,
+              }
+            : item,
+        ),
       );
+    } catch (err) {
+      window.alert(err.response?.data?.message || "Could not update status.");
+    }
+  }
 
-      await api.put(
-        `/products/${product._id}`,
-        fd,
-      );
+  /* =========================================================
+     TOGGLE FEATURED
+  ========================================================= */
 
-      setProducts(
-        (current) =>
-          current.map(
-            (item) =>
-              item._id ===
-              product._id
-                ? {
-                    ...item,
-                    active:
-                      nextActive,
-                  }
-                : item,
-          ),
+  async function toggleFeatured(product) {
+    const nextFeatured = !product.featured;
+
+    try {
+      const fd = new FormData();
+
+      fd.append("featured", String(nextFeatured));
+
+      await api.put(`/products/${product._id}`, fd);
+
+      setProducts((current) =>
+        current.map((item) =>
+          item._id === product._id
+            ? {
+                ...item,
+                featured: nextFeatured,
+              }
+            : item,
+        ),
       );
     } catch (err) {
       window.alert(
-        err.response?.data
-          ?.message ||
-          "Could not update status.",
+        err.response?.data?.message || "Could not update featured status.",
       );
     }
   }
@@ -990,67 +840,36 @@ export default function AdminProducts() {
   ========================================================= */
 
   function handleImageChange(e) {
-    const file =
-      e.target.files?.[0];
+    const file = e.target.files?.[0];
 
     e.target.value = "";
 
     if (!file) return;
 
-    if (
-      !file.type.startsWith(
-        "image/",
-      )
-    ) {
-      setError(
-        "Please select a valid image.",
-      );
+    if (!file.type.startsWith("image/")) {
+      setError("Please select a valid image.");
       return;
     }
 
-    if (
-      file.size >
-      5 * 1024 * 1024
-    ) {
-      setError(
-        "Image must be smaller than 5 MB.",
-      );
+    if (file.size > 5 * 1024 * 1024) {
+      setError("Image must be smaller than 5 MB.");
       return;
     }
 
-    if (
-      imagePreview &&
-      imagePreview.startsWith(
-        "blob:",
-      )
-    ) {
-      URL.revokeObjectURL(
-        imagePreview,
-      );
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
     }
 
-    const previewUrl =
-      URL.createObjectURL(
-        file,
-      );
+    const previewUrl = URL.createObjectURL(file);
 
     setImageFile(file);
-    setImagePreview(
-      previewUrl,
-    );
+    setImagePreview(previewUrl);
     setError("");
   }
 
   function removeImage() {
-    if (
-      imagePreview &&
-      imagePreview.startsWith(
-        "blob:",
-      )
-    ) {
-      URL.revokeObjectURL(
-        imagePreview,
-      );
+    if (imagePreview && imagePreview.startsWith("blob:")) {
+      URL.revokeObjectURL(imagePreview);
     }
 
     setImageFile(null);
@@ -1067,71 +886,46 @@ export default function AdminProducts() {
     try {
       setCameraError("");
 
-      if (
-        !navigator.mediaDevices?.getUserMedia
-      ) {
-        setCameraError(
-          "Camera access is not supported by this browser.",
-        );
+      if (!navigator.mediaDevices?.getUserMedia) {
+        setCameraError("Camera access is not supported by this browser.");
         return;
       }
 
-      const stream =
-        await navigator.mediaDevices.getUserMedia(
-          {
-            video: {
-              facingMode: {
-                ideal:
-                  "environment",
-              },
-              width: {
-                ideal: 1280,
-              },
-              height: {
-                ideal: 720,
-              },
-            },
-            audio: false,
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: {
+            ideal: "environment",
           },
-        );
+          width: {
+            ideal: 1280,
+          },
+          height: {
+            ideal: 720,
+          },
+        },
+        audio: false,
+      });
 
-      cameraStreamRef.current =
-        stream;
+      cameraStreamRef.current = stream;
 
       setCameraOpen(true);
     } catch (err) {
-      console.error(
-        "Camera error:",
-        err,
-      );
+      console.error("Camera error:", err);
 
       if (
-        err.name ===
-          "NotAllowedError" ||
-        err.name ===
-          "PermissionDeniedError"
+        err.name === "NotAllowedError" ||
+        err.name === "PermissionDeniedError"
       ) {
         setCameraError(
           "Camera permission was denied. Please allow camera access in your browser.",
         );
-      } else if (
-        err.name ===
-        "NotFoundError"
-      ) {
-        setCameraError(
-          "No camera was found on this device.",
-        );
-      } else if (
-        err.name ===
-        "NotReadableError"
-      ) {
+      } else if (err.name === "NotFoundError") {
+        setCameraError("No camera was found on this device.");
+      } else if (err.name === "NotReadableError") {
         setCameraError(
           "The camera is already being used by another application.",
         );
-      } else if (
-        err.name ===
-        "SecurityError"
-      ) {
+      } else if (err.name === "SecurityError") {
         setCameraError(
           "Camera access requires a secure connection (HTTPS or localhost).",
         );
@@ -1148,23 +942,15 @@ export default function AdminProducts() {
   ========================================================= */
 
   useEffect(() => {
-    if (
-      !cameraOpen ||
-      !cameraVideoRef.current ||
-      !cameraStreamRef.current
-    ) {
+    if (!cameraOpen || !cameraVideoRef.current || !cameraStreamRef.current) {
       return;
     }
 
-    const video =
-      cameraVideoRef.current;
+    const video = cameraVideoRef.current;
 
-    video.srcObject =
-      cameraStreamRef.current;
+    video.srcObject = cameraStreamRef.current;
 
-    video
-      .play()
-      .catch(() => {});
+    video.play().catch(() => {});
 
     return () => {
       video.srcObject = null;
@@ -1176,90 +962,49 @@ export default function AdminProducts() {
   ========================================================= */
 
   function capturePhoto() {
-    const video =
-      cameraVideoRef.current;
+    const video = cameraVideoRef.current;
 
     if (!video) return;
 
-    if (
-      !video.videoWidth ||
-      !video.videoHeight
-    ) {
-      setCameraError(
-        "Camera is not ready yet. Please wait a moment.",
-      );
+    if (!video.videoWidth || !video.videoHeight) {
+      setCameraError("Camera is not ready yet. Please wait a moment.");
       return;
     }
 
-    const canvas =
-      document.createElement(
-        "canvas",
-      );
+    const canvas = document.createElement("canvas");
 
-    canvas.width =
-      video.videoWidth;
+    canvas.width = video.videoWidth;
 
-    canvas.height =
-      video.videoHeight;
+    canvas.height = video.videoHeight;
 
-    const context =
-      canvas.getContext(
-        "2d",
-      );
+    const context = canvas.getContext("2d");
 
     if (!context) {
-      setCameraError(
-        "Could not capture the photo.",
-      );
+      setCameraError("Could not capture the photo.");
       return;
     }
 
-    context.drawImage(
-      video,
-      0,
-      0,
-      canvas.width,
-      canvas.height,
-    );
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
 
     canvas.toBlob(
       (blob) => {
         if (!blob) {
-          setCameraError(
-            "Could not create the image.",
-          );
+          setCameraError("Could not create the image.");
           return;
         }
 
-        const file =
-          new File(
-            [blob],
-            `product-${Date.now()}.jpg`,
-            {
-              type: "image/jpeg",
-            },
-          );
+        const file = new File([blob], `product-${Date.now()}.jpg`, {
+          type: "image/jpeg",
+        });
 
-        if (
-          imagePreview &&
-          imagePreview.startsWith(
-            "blob:",
-          )
-        ) {
-          URL.revokeObjectURL(
-            imagePreview,
-          );
+        if (imagePreview && imagePreview.startsWith("blob:")) {
+          URL.revokeObjectURL(imagePreview);
         }
 
-        const previewUrl =
-          URL.createObjectURL(
-            file,
-          );
+        const previewUrl = URL.createObjectURL(file);
 
         setImageFile(file);
-        setImagePreview(
-          previewUrl,
-        );
+        setImagePreview(previewUrl);
         setError("");
 
         closeCamera();
@@ -1273,119 +1018,73 @@ export default function AdminProducts() {
      TYPE HELPERS
   ========================================================= */
 
-  function updateTypeName(
-    typeIndex,
-    value,
-  ) {
+  function updateTypeName(typeIndex, value) {
     setTypes((current) =>
-      current.map(
-        (type, index) =>
-          index === typeIndex
-            ? {
-                ...type,
-                name: value,
-              }
-            : type,
+      current.map((type, index) =>
+        index === typeIndex
+          ? {
+              ...type,
+              name: value,
+            }
+          : type,
       ),
     );
   }
 
   function addType() {
-    setTypes((current) => [
-      ...current,
-      createEmptyType(),
-    ]);
+    setTypes((current) => [...current, createEmptyType()]);
   }
 
-  function removeType(
-    typeIndex,
-  ) {
+  function removeType(typeIndex) {
+    setTypes((current) => current.filter((_, index) => index !== typeIndex));
+  }
+
+  function updateTypeSize(typeIndex, sizeIndex, field, value) {
     setTypes((current) =>
-      current.filter(
-        (_, index) =>
-          index !== typeIndex,
+      current.map((type, index) => {
+        if (index !== typeIndex) {
+          return type;
+        }
+
+        return {
+          ...type,
+          sizes: type.sizes.map((size, currentSizeIndex) =>
+            currentSizeIndex === sizeIndex
+              ? {
+                  ...size,
+                  [field]: value,
+                }
+              : size,
+          ),
+        };
+      }),
+    );
+  }
+
+  function addTypeSize(typeIndex) {
+    setTypes((current) =>
+      current.map((type, index) =>
+        index === typeIndex
+          ? {
+              ...type,
+              sizes: [...type.sizes, createEmptySize()],
+            }
+          : type,
       ),
     );
   }
 
-  function updateTypeSize(
-    typeIndex,
-    sizeIndex,
-    field,
-    value,
-  ) {
+  function removeTypeSize(typeIndex, sizeIndex) {
     setTypes((current) =>
-      current.map(
-        (type, index) => {
-          if (
-            index !== typeIndex
-          ) {
-            return type;
-          }
-
-          return {
-            ...type,
-            sizes:
-              type.sizes.map(
-                (
-                  size,
-                  currentSizeIndex,
-                ) =>
-                  currentSizeIndex ===
-                  sizeIndex
-                    ? {
-                        ...size,
-                        [field]:
-                          value,
-                      }
-                    : size,
+      current.map((type, index) =>
+        index === typeIndex
+          ? {
+              ...type,
+              sizes: type.sizes.filter(
+                (_, currentSizeIndex) => currentSizeIndex !== sizeIndex,
               ),
-          };
-        },
-      ),
-    );
-  }
-
-  function addTypeSize(
-    typeIndex,
-  ) {
-    setTypes((current) =>
-      current.map(
-        (type, index) =>
-          index === typeIndex
-            ? {
-                ...type,
-                sizes: [
-                  ...type.sizes,
-                  createEmptySize(),
-                ],
-              }
-            : type,
-      ),
-    );
-  }
-
-  function removeTypeSize(
-    typeIndex,
-    sizeIndex,
-  ) {
-    setTypes((current) =>
-      current.map(
-        (type, index) =>
-          index === typeIndex
-            ? {
-                ...type,
-                sizes:
-                  type.sizes.filter(
-                    (
-                      _,
-                      currentSizeIndex,
-                    ) =>
-                      currentSizeIndex !==
-                      sizeIndex,
-                  ),
-              }
-            : type,
+            }
+          : type,
       ),
     );
   }
@@ -1523,11 +1222,24 @@ export default function AdminProducts() {
                         </td>
 
                         <td>
-                          {product.featured ? (
-                            <span className="badge badge-active">Featured</span>
-                          ) : (
-                            <span className="badge badge-inactive">No</span>
-                          )}
+                          <button
+                            type="button"
+                            className={`badge ${
+                              product.featured
+                                ? "badge-active"
+                                : "badge-inactive"
+                            }`}
+                            onClick={() => toggleFeatured(product)}
+                            aria-label={`${
+                              product.featured ? "Remove" : "Add"
+                            } ${product.name} ${
+                              product.featured
+                                ? "from featured products"
+                                : "to featured products"
+                            }`}
+                          >
+                            {product.featured ? "Featured" : "No"}
+                          </button>
                         </td>
 
                         <td>
