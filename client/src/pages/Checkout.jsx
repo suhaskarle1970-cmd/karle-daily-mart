@@ -360,7 +360,7 @@ const finalTotal = subtotal + deliveryCharge;
             <div className="checkout-summary-row checkout-discount-row">
               <span>Discount</span>
 
-              <span>-{formatCurrency(totalSavingAmount)}</span>
+              <span style={{color:"red"}}>-{formatCurrency(totalSavingAmount)}</span>
             </div>
           )}
 
@@ -388,7 +388,7 @@ const finalTotal = subtotal + deliveryCharge;
             <div className="checkout-saving">
               <span>You save</span>
 
-              <strong>{formatCurrency(totalSavingAmount)}</strong>
+              <strong style={{color:"green"}}>{formatCurrency(totalSavingAmount)}</strong>
             </div>
           )}
 <hr />  
