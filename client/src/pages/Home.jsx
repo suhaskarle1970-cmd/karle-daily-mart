@@ -170,130 +170,6 @@ export default function Home() {
 
     setMetaProperty("og:type", "website");
 
-    // ---------------------------------------------------------
-    // ORGANIZATION SCHEMA
-    // ---------------------------------------------------------
-    // ---------------------------------------------------------
-    // STRUCTURED DATA
-    // ---------------------------------------------------------
-
-    const existingOrganizationSchema = document.getElementById(
-      "organization-jsonld",
-    );
-
-    if (existingOrganizationSchema) {
-      existingOrganizationSchema.remove();
-    }
-
-    const existingWebsiteSchema = document.getElementById("website-jsonld");
-
-    if (existingWebsiteSchema) {
-      existingWebsiteSchema.remove();
-    }
-
-    const existingGroceryStoreSchema = document.getElementById(
-      "grocery-store-jsonld",
-    );
-
-    if (existingGroceryStoreSchema) {
-      existingGroceryStoreSchema.remove();
-    }
-
-    // ---------------------------------------------------------
-    // ORGANIZATION
-    // ---------------------------------------------------------
-
-    const organizationSchema = {
-      "@context": "https://schema.org",
-      "@type": "Organization",
-      name: "Daily Mart Super Market",
-      url: siteUrl,
-    };
-
-    const organizationScript = document.createElement("script");
-
-    organizationScript.id = "organization-jsonld";
-    organizationScript.type = "application/ld+json";
-    organizationScript.textContent = JSON.stringify(organizationSchema);
-
-    document.head.appendChild(organizationScript);
-
-    // ---------------------------------------------------------
-    // GROCERY STORE
-    // ---------------------------------------------------------
-
-    const groceryStoreSchema = {
-      "@context": "https://schema.org",
-      "@type": "GroceryStore",
-
-      name: "Daily Mart Super Market",
-
-      url: siteUrl,
-
-      address: {
-        "@type": "PostalAddress",
-        streetAddress: config.storeAddress || "",
-        addressLocality: "Basmat",
-        addressRegion: "Maharashtra",
-        postalCode: "431512",
-        addressCountry: "IN",
-      },
-
-      ...(config.storePhone ? { telephone: config.storePhone } : {}),
-    };
-
-    const groceryStoreScript = document.createElement("script");
-
-    groceryStoreScript.id = "grocery-store-jsonld";
-    groceryStoreScript.type = "application/ld+json";
-    groceryStoreScript.textContent = JSON.stringify(groceryStoreSchema);
-
-    document.head.appendChild(groceryStoreScript);
-
-    // ---------------------------------------------------------
-    // WEBSITE
-    // ---------------------------------------------------------
-
-    const websiteSchema = {
-      "@context": "https://schema.org",
-      "@type": "WebSite",
-      name: "Daily Mart Super Market",
-      url: siteUrl,
-    };
-
-    const websiteScript = document.createElement("script");
-
-    websiteScript.id = "website-jsonld";
-    websiteScript.type = "application/ld+json";
-    websiteScript.textContent = JSON.stringify(websiteSchema);
-
-    document.head.appendChild(websiteScript);
-
-    // ---------------------------------------------------------
-    // CLEANUP
-    // ---------------------------------------------------------
-
-    return () => {
-      const organizationSchema = document.getElementById("organization-jsonld");
-
-      if (organizationSchema) {
-        organizationSchema.remove();
-      }
-
-      const websiteSchema = document.getElementById("website-jsonld");
-
-      if (websiteSchema) {
-        websiteSchema.remove();
-      }
-
-      const groceryStoreSchema = document.getElementById(
-        "grocery-store-jsonld",
-      );
-
-      if (groceryStoreSchema) {
-        groceryStoreSchema.remove();
-      }
-    };
   }, []);
 
   /* =========================================================
@@ -313,6 +189,25 @@ export default function Home() {
 
   return (
     <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify({
+            "@context": "https://schema.org",
+            "@type": "GroceryStore",
+            name: "Daily Mart Super Market",
+            url: "https://www.dailymartsupermarket.in/",
+            address: {
+              "@type": "PostalAddress",
+              addressLocality: "Basmat",
+              addressRegion: "Maharashtra",
+              postalCode: "431512",
+              addressCountry: "IN",
+            },
+          }),
+        }}
+      />
+
       {/* =====================================================
           HERO
       ===================================================== */}
