@@ -11,10 +11,28 @@ export default function Footer() {
       <div className="container footer-inner">
         <div>
           <Link to="/" className="navbar-logo">
-            <img src={logoimg} alt="Daily Mart" />
+            <img src={logoimg} alt="Daily Mart Super Market" />
           </Link>
-          <p className="footer-muted">{config.storeAddress}</p>
+
+          <p className="footer-business-name">Daily Mart Super Market</p>
+
+          <p className="footer-muted">
+            Your local supermarket for groceries, snacks, drinks, personal care
+            and household essentials.
+          </p>
+
+          {config.storeAddress && (
+            <a
+              href="https://www.google.com/maps/search/?api=1&query=Daily+Mart+Super+Market+Khajipura+Basmat+Maharashtra+431512"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="footer-address"
+            >
+              📍 {config.storeAddress}
+            </a>
+          )}
         </div>
+
         <div className="footer-contact">
           {config.storePhone && <p>📞 {config.storePhone}</p>}
           {config.storeEmail && <p>✉️ {config.storeEmail}</p>}

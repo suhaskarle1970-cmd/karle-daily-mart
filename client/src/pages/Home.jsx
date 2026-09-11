@@ -1,15 +1,15 @@
 import { useCallback, useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import api from "../services/api";
 import HeroSlider from "../components/HeroSlider";
 import ProductCard from "../components/ProductCard";
-import { LoadingGrid, ErrorState } from "../components/States";
+import { ErrorState, LoadingGrid } from "../components/States";
+import api from "../services/api";
 
-import LocalGroceryStoreIcon from "@mui/icons-material/LocalGroceryStore";
+import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 import EmojiFoodBeverageIcon from "@mui/icons-material/EmojiFoodBeverage";
 import HistoryEduIcon from "@mui/icons-material/HistoryEdu";
+import LocalGroceryStoreIcon from "@mui/icons-material/LocalGroceryStore";
 import SpaIcon from "@mui/icons-material/Spa";
-import CleaningServicesIcon from "@mui/icons-material/CleaningServices";
 
 import "./Home.css";
 
@@ -103,7 +103,7 @@ export default function Home() {
 
   useEffect(() => {
     const title =
-      "Daily Mart Super Market, Basmat, Vasmat | Grocery & Daily Essentials";
+      "Daily Mart Super Market, Basmat | Grocery & Daily Essentials";
 
     const description =
       "Daily Mart Super Market in Basmat, Maharashtra. Shop groceries, rice, dal, spices, snacks, drinks, beauty products, household essentials and stationery.";
@@ -173,10 +173,9 @@ export default function Home() {
     // ---------------------------------------------------------
     // ORGANIZATION SCHEMA
     // ---------------------------------------------------------
-
-    /* =========================================================
-       HOMEPAGE STRUCTURED DATA
-    ========================================================= */
+    // ---------------------------------------------------------
+    // STRUCTURED DATA
+    // ---------------------------------------------------------
 
     const existingOrganizationSchema = document.getElementById(
       "organization-jsonld",
@@ -190,6 +189,14 @@ export default function Home() {
 
     if (existingWebsiteSchema) {
       existingWebsiteSchema.remove();
+    }
+
+    const existingGroceryStoreSchema = document.getElementById(
+      "grocery-store-jsonld",
+    );
+
+    if (existingGroceryStoreSchema) {
+      existingGroceryStoreSchema.remove();
     }
 
     // ---------------------------------------------------------
@@ -206,12 +213,42 @@ export default function Home() {
     const organizationScript = document.createElement("script");
 
     organizationScript.id = "organization-jsonld";
-
     organizationScript.type = "application/ld+json";
-
     organizationScript.textContent = JSON.stringify(organizationSchema);
 
     document.head.appendChild(organizationScript);
+
+    // ---------------------------------------------------------
+    // GROCERY STORE
+    // ---------------------------------------------------------
+
+    const groceryStoreSchema = {
+      "@context": "https://schema.org",
+      "@type": "GroceryStore",
+
+      name: "Daily Mart Super Market",
+
+      url: siteUrl,
+
+      address: {
+        "@type": "PostalAddress",
+        streetAddress: config.storeAddress || "",
+        addressLocality: "Basmat",
+        addressRegion: "Maharashtra",
+        postalCode: "431512",
+        addressCountry: "IN",
+      },
+
+      ...(config.storePhone ? { telephone: config.storePhone } : {}),
+    };
+
+    const groceryStoreScript = document.createElement("script");
+
+    groceryStoreScript.id = "grocery-store-jsonld";
+    groceryStoreScript.type = "application/ld+json";
+    groceryStoreScript.textContent = JSON.stringify(groceryStoreSchema);
+
+    document.head.appendChild(groceryStoreScript);
 
     // ---------------------------------------------------------
     // WEBSITE
@@ -227,9 +264,7 @@ export default function Home() {
     const websiteScript = document.createElement("script");
 
     websiteScript.id = "website-jsonld";
-
     websiteScript.type = "application/ld+json";
-
     websiteScript.textContent = JSON.stringify(websiteSchema);
 
     document.head.appendChild(websiteScript);
@@ -238,23 +273,25 @@ export default function Home() {
     // CLEANUP
     // ---------------------------------------------------------
 
-        return () => {
-      const organizationSchema =
-        document.getElementById(
-          "organization-jsonld",
-        );
+    return () => {
+      const organizationSchema = document.getElementById("organization-jsonld");
 
       if (organizationSchema) {
         organizationSchema.remove();
       }
 
-      const websiteSchema =
-        document.getElementById(
-          "website-jsonld",
-        );
+      const websiteSchema = document.getElementById("website-jsonld");
 
       if (websiteSchema) {
         websiteSchema.remove();
+      }
+
+      const groceryStoreSchema = document.getElementById(
+        "grocery-store-jsonld",
+      );
+
+      if (groceryStoreSchema) {
+        groceryStoreSchema.remove();
       }
     };
   }, []);

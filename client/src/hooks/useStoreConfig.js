@@ -4,7 +4,7 @@ import api from "../services/api";
 const FALLBACK = {
   storeName: "Daily Mart Super Market",
   storePhone: "+91 8668781633",
-  storeAddress: "Behind Union Bank, Bank Colony, Basmat, Maharashtra",
+  storeAddress: "Khajipura, Basmat, Maharashtra 431512 Maharashtra, India",
   storeEmail: "suhaskarle1970@gmail.com",
   whatsappNumber: "+91 8668781633",
 
