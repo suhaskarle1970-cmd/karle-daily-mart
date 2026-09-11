@@ -103,7 +103,7 @@ export default function Home() {
 
   useEffect(() => {
     const title =
-      "Daily Mart Super Market, Basmat | Grocery & Daily Essentials";
+      "Daily Mart Super Market, Basmat, Vasmat | Grocery & Daily Essentials";
 
     const description =
       "Daily Mart Super Market in Basmat, Maharashtra. Shop groceries, rice, dal, spices, snacks, drinks, beauty products, household essentials and stationery.";
