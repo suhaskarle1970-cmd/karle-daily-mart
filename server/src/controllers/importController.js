@@ -1,6 +1,9 @@
 import { parse } from "csv-parse/sync";
 import Product from "../models/Product.js";
-import Category from "../models/Category.js";
+import Category, {
+  DEPARTMENTS,
+  DEPARTMENT_LABELS,
+} from "../models/Category.js";
 
 function slugify(name) {
   return name
@@ -10,15 +13,54 @@ function slugify(name) {
     .replace(/(^-|-$)/g, "");
 }
 
-// CSV columns expected:
-// name, barcode, price, category, description,
-// variantUnit, variantAmount, variantPrice
-//
-// Example:
-// Tata Salt,8901030,28,Grocery,Iodised salt 1kg,kg,1,28
-//
-// One bad row never aborts the whole import — it's collected and reported.
+// Maps CSV department input or infers from category name, falling back to "grocery-kitchen"
+function resolveDepartment(rawDepartment, categoryName) {
+  if (rawDepartment) {
+    const cleaned = rawDepartment.trim().toLowerCase();
+    if (DEPARTMENTS.includes(cleaned)) return cleaned;
 
+    const matchedLabel = Object.entries(DEPARTMENT_LABELS).find(
+      ([, label]) => label.toLowerCase() === cleaned,
+    );
+    if (matchedLabel) return matchedLabel[0];
+
+    const sluggedDept = slugify(cleaned);
+    if (DEPARTMENTS.includes(sluggedDept)) return sluggedDept;
+  }
+
+  // Basic keyword inference if CSV doesn't include a department column
+  const catLower = categoryName.toLowerCase();
+  if (
+    /snack|drink|beverage|juice|biscuit|chip|chocolate|tea|coffee/.test(
+      catLower,
+    )
+  ) {
+    return "snacks-drinks";
+  }
+  if (
+    /beauty|care|soap|shampoo|skin|hair|oral|toothpaste|cosmetic|face/.test(
+      catLower,
+    )
+  ) {
+    return "beauty-personal-care";
+  }
+  if (
+    /household|clean|detergent|dish|floor|toilet|freshener|repellent/.test(
+      catLower,
+    )
+  ) {
+    return "household-essentials";
+  }
+  if (/stationery|pen|pencil|notebook|paper|office|school/.test(catLower)) {
+    return "stationery";
+  }
+
+  return "grocery-kitchen";
+}
+
+// CSV columns supported:
+// Required: name, price, category
+// Optional: barcode, description, department, variantUnit, variantAmount, variantPrice
 export async function importProducts(req, res, next) {
   try {
     if (!req.file) {
@@ -31,6 +73,7 @@ export async function importProducts(req, res, next) {
 
     try {
       rows = parse(req.file.buffer.toString("utf-8"), {
+        bom: true, // Strips Excel UTF-8 BOM so the first column header isn't corrupted
         columns: (headers) => headers.map((h) => h.trim().toLowerCase()),
         skip_empty_lines: true,
         trim: true,
@@ -59,28 +102,23 @@ export async function importProducts(req, res, next) {
         // -----------------------------------------
         // Basic product fields
         // -----------------------------------------
-
         const name = (row.name || "").trim();
         const priceRaw = (row.price || "").trim();
         const categoryName = (row.category || "").trim();
+        const departmentRaw = (row.department || "").trim();
         const barcode = (row.barcode || "").trim();
         const description = (row.description || "").trim();
 
         // -----------------------------------------
-        // Variant fields
-        // CSV headers become lowercase automatically
+        // Variant fields (CSV headers are lowercase)
         // -----------------------------------------
-
         const variantUnit = (row.variantunit || "").trim().toLowerCase();
-
         const variantAmountRaw = (row.variantamount || "").trim();
-
         const variantPriceRaw = (row.variantprice || "").trim();
 
         // -----------------------------------------
         // Basic validation
         // -----------------------------------------
-
         if (!name) {
           throw new Error("Missing product name");
         }
@@ -93,8 +131,12 @@ export async function importProducts(req, res, next) {
           throw new Error("Missing category");
         }
 
-        const price = Number(priceRaw);
+        const categorySlug = slugify(categoryName);
+        if (!categorySlug) {
+          throw new Error("Category name must contain alphanumeric characters");
+        }
 
+        const price = Number(priceRaw);
         if (price < 0) {
           throw new Error("Price cannot be negative");
         }
@@ -102,15 +144,14 @@ export async function importProducts(req, res, next) {
         // -----------------------------------------
         // Variant validation
         // -----------------------------------------
-
         let variants = [];
-
-        const hasVariantData =
-          variantUnit || variantAmountRaw || variantPriceRaw;
+        const hasVariantData = Boolean(
+          variantUnit || variantAmountRaw || variantPriceRaw,
+        );
 
         if (hasVariantData) {
           if (!["g", "kg", "ml", "l", "pcs"].includes(variantUnit)) {
-            throw new Error("Invalid variant unit. Use g, kg, ml, or pcs");
+            throw new Error("Invalid variant unit. Use g, kg, ml, l, or pcs");
           }
 
           if (
@@ -138,40 +179,33 @@ export async function importProducts(req, res, next) {
         }
 
         // -----------------------------------------
-        // Find / create category
+        // Find / create category (cached by slug)
         // -----------------------------------------
-
-        const categoryCacheKey = categoryName.toLowerCase();
-
-        let categoryId = categoryCache.get(categoryCacheKey);
+        let categoryId = categoryCache.get(categorySlug);
 
         if (!categoryId) {
-          let category = await Category.findOne({
-            name: new RegExp(`^${categoryName}$`, "i"),
-          });
+          let category = await Category.findOne({ slug: categorySlug });
 
           if (!category) {
             category = await Category.create({
               name: categoryName,
-              slug: slugify(categoryName),
+              slug: categorySlug,
+              department: resolveDepartment(departmentRaw, categoryName),
             });
           }
 
           categoryId = category._id;
-
-          categoryCache.set(categoryCacheKey, categoryId);
+          categoryCache.set(categorySlug, categoryId);
         }
 
         // -----------------------------------------
         // Check existing product by barcode
         // -----------------------------------------
-
         const existing = barcode ? await Product.findOne({ barcode }) : null;
 
         // -----------------------------------------
         // Update existing product
         // -----------------------------------------
-
         if (existing) {
           existing.name = name;
           existing.price = price;
@@ -181,13 +215,14 @@ export async function importProducts(req, res, next) {
             existing.description = description;
           }
 
-          existing.variants = variants;
+          // Only overwrite variants if the CSV row actually provided variant data
+          if (hasVariantData) {
+            existing.variants = variants;
+          }
 
           await existing.save();
-
           results.updated++;
         }
-
         // -----------------------------------------
         // Create new product
         // -----------------------------------------
@@ -196,8 +231,8 @@ export async function importProducts(req, res, next) {
             name,
             price,
             category: categoryId,
-            barcode,
-            description,
+            barcode: barcode || undefined, // Avoid storing "" which breaks sparse unique indexes
+            description: description || undefined,
             variants,
           });
 
@@ -205,17 +240,12 @@ export async function importProducts(req, res, next) {
         }
       } catch (rowErr) {
         results.failed++;
-
         results.errors.push({
           row: rowNum,
           message: rowErr.message,
         });
       }
     }
-
-    // -----------------------------------------
-    // Final response
-    // -----------------------------------------
 
     res.json(results);
   } catch (err) {

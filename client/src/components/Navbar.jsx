@@ -2,7 +2,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { useCart } from "../context/CartContext";
 import { useStoreConfig } from "../hooks/useStoreConfig";
-import logoimg from "../../public/favicon.svg";
+import logoimg from "../../public/favicon2.svg";
 import "./Navbar.css";
 
 export default function Navbar() {

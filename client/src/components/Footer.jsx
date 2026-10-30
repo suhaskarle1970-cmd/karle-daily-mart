@@ -45,8 +45,7 @@ export default function Footer() {
           reserved.
         </p>
         <p className="developer-info">
-          A digital experience crafted with design & technology by Vedant Shinde
-          · Full-Stack Developer
+          Designed & developed by Vedant Shinde · Full-Stack Developer
         </p>
       </div>
     </footer>
