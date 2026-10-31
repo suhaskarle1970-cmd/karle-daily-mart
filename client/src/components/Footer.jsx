@@ -1,5 +1,5 @@
 import { useStoreConfig } from "../hooks/useStoreConfig";
-import logoimg from "../../public/favicon.svg";
+import logoimg from "../../public/favicon2.svg";
 import { Link } from "react-router-dom";
 import "./Footer.css";
 

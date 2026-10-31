@@ -83,19 +83,12 @@ function VariantEditor({ variants, onChange }) {
   );
 
   const addRow = useCallback(() => {
-    onChange([
-      ...variants,
-      createEmptySize(),
-    ]);
+    onChange([...variants, createEmptySize()]);
   }, [variants, onChange]);
 
   const removeRow = useCallback(
     (index) => {
-      onChange(
-        variants.filter(
-          (_, rowIndex) => rowIndex !== index,
-        ),
-      );
+      onChange(variants.filter((_, rowIndex) => rowIndex !== index));
     },
     [variants, onChange],
   );
@@ -104,40 +97,24 @@ function VariantEditor({ variants, onChange }) {
     <div className="variant-editor">
       {variants.length === 0 && (
         <p className="form-help">
-          No sizes added — product will use the standard
-          price above.
+          No sizes added — product will use the standard price above.
         </p>
       )}
 
       {variants.map((variant, index) => (
-        <div
-          className="variant-row"
-          key={`variant-${index}`}
-        >
+        <div className="variant-row" key={`variant-${index}`}>
           <input
             type="number"
             min="0"
             step="any"
             placeholder="Amount"
             value={variant.amount}
-            onChange={(e) =>
-              updateRow(
-                index,
-                "amount",
-                e.target.value,
-              )
-            }
+            onChange={(e) => updateRow(index, "amount", e.target.value)}
           />
 
           <select
             value={variant.unit}
-            onChange={(e) =>
-              updateRow(
-                index,
-                "unit",
-                e.target.value,
-              )
-            }
+            onChange={(e) => updateRow(index, "unit", e.target.value)}
           >
             {UNITS.map((unit) => (
               <option key={unit} value={unit}>
@@ -152,13 +129,7 @@ function VariantEditor({ variants, onChange }) {
             step="0.01"
             placeholder="Price ₹"
             value={variant.price}
-            onChange={(e) =>
-              updateRow(
-                index,
-                "price",
-                e.target.value,
-              )
-            }
+            onChange={(e) => updateRow(index, "price", e.target.value)}
           />
 
           <input
@@ -167,18 +138,12 @@ function VariantEditor({ variants, onChange }) {
             step="0.01"
             placeholder="MRP ₹"
             value={variant.mrp ?? ""}
-            onChange={(e) =>
-              updateRow(
-                index,
-                "mrp",
-                e.target.value,
-              )
-            }
+            onChange={(e) => updateRow(index, "mrp", e.target.value)}
           />
 
           <button
             type="button"
-            className="icon-btn danger"
+            className="icon-btn danger variant-remove-btn"
             onClick={() => removeRow(index)}
           >
             Remove
@@ -188,7 +153,7 @@ function VariantEditor({ variants, onChange }) {
 
       <button
         type="button"
-        className="btn btn-outline"
+        className="btn btn-outline variant-add-btn"
         onClick={addRow}
       >
         + Add size
@@ -1094,7 +1059,7 @@ export default function AdminProducts() {
   ========================================================= */
 
   return (
-    <div>
+    <div className="admin-page-container">
       {/* =====================================================
           HEADER
       ===================================================== */}
@@ -1143,11 +1108,15 @@ export default function AdminProducts() {
       ===================================================== */}
 
       <div className="admin-card">
-        {status === "loading" && <p>Loading…</p>}
+        {status === "loading" && (
+          <div className="admin-state-box">
+            <p>Loading…</p>
+          </div>
+        )}
 
         {status === "error" && (
-          <div>
-            <p className="field-error">Couldn't load products.</p>
+          <div className="admin-state-box">
+            <p className="field-error">Couldn&apos;t load products.</p>
 
             <button
               type="button"
@@ -1165,14 +1134,14 @@ export default function AdminProducts() {
               <table className="admin-table">
                 <thead>
                   <tr>
-                    <th scope="col"></th>
+                    <th scope="col">Image</th>
                     <th scope="col">Name</th>
                     <th scope="col">Category</th>
                     <th scope="col">Price</th>
                     <th scope="col">Options</th>
                     <th scope="col">Featured</th>
                     <th scope="col">Status</th>
-                    <th scope="col"></th>
+                    <th scope="col">Actions</th>
                   </tr>
                 </thead>
 
@@ -1199,11 +1168,11 @@ export default function AdminProducts() {
                               loading="lazy"
                             />
                           ) : (
-                            <span>—</span>
+                            <span className="thumb-placeholder">—</span>
                           )}
                         </td>
 
-                        <td>{product.name}</td>
+                        <td className="admin-cell-name">{product.name}</td>
 
                         <td>{product.category?.name || "—"}</td>
 
@@ -1280,7 +1249,9 @@ export default function AdminProducts() {
 
                   {products.length === 0 && (
                     <tr>
-                      <td colSpan={8}>No products found.</td>
+                      <td colSpan={8} className="admin-empty-cell">
+                        No products found.
+                      </td>
                     </tr>
                   )}
                 </tbody>
@@ -1302,7 +1273,7 @@ export default function AdminProducts() {
                   Previous
                 </button>
 
-                <span>
+                <span className="pagination-info">
                   Page {pagination.page} of {pagination.totalPages}
                 </span>
 
@@ -1333,68 +1304,112 @@ export default function AdminProducts() {
             }
           }}
         >
-          <form className="modal-card" onSubmit={handleSave}>
-            <h2>{modal.mode === "create" ? "Add product" : "Edit product"}</h2>
+          <form
+            className="modal-card"
+            onSubmit={handleSave}
+            onMouseDown={(e) => e.stopPropagation()}
+          >
+            <div className="modal-card-header">
+              <h2>
+                {modal.mode === "create" ? "Add product" : "Edit product"}
+              </h2>
+
+              <button
+                type="button"
+                className="camera-close-btn modal-close-btn"
+                onClick={closeModal}
+                disabled={saving}
+                aria-label="Close modal"
+              >
+                ×
+              </button>
+            </div>
 
             <div className="form-grid">
               {/* NAME */}
 
               <label>
-                Name
+                <span>Name</span>
                 <input
                   value={form.name}
                   onChange={(e) => updateForm("name", e.target.value)}
+                  placeholder="e.g. Aashirvaad Whole Wheat Atta"
                   required
                   maxLength={150}
                   autoComplete="off"
                 />
               </label>
 
-              {/* PRICING TYPE */}
+              {/* PRICING TYPE & CATEGORY ROW */}
 
-              <label>
-                Pricing Type
-                <select
-                  value={pricingType}
-                  onChange={(e) => handlePricingTypeChange(e.target.value)}
-                >
-                  <option value="standard">Standard Price</option>
+              <div className="form-row">
+                <label>
+                  <span>Pricing Type</span>
+                  <select
+                    value={pricingType}
+                    onChange={(e) => handlePricingTypeChange(e.target.value)}
+                  >
+                    <option value="standard">Standard Price</option>
+                    <option value="type-based">Type-based Price</option>
+                  </select>
+                </label>
 
-                  <option value="type-based">Type-based Price</option>
-                </select>
-              </label>
+                <label>
+                  <span>Category</span>
+                  <select
+                    value={form.category}
+                    onChange={(e) => updateForm("category", e.target.value)}
+                    required
+                  >
+                    <option value="">Select category</option>
+
+                    {categories.map((category) => (
+                      <option key={category._id} value={category._id}>
+                        {category.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
 
               {/* STANDARD */}
 
               {pricingType === "standard" && (
                 <>
-                  <label>
-                    Price (₹)
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.price}
-                      onChange={(e) => updateForm("price", e.target.value)}
-                      required={variants.length === 0}
-                    />
-                  </label>
+                  <div className="form-row">
+                    <label>
+                      <span>Price (₹)</span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        placeholder="e.g. 95"
+                        value={form.price}
+                        onChange={(e) => updateForm("price", e.target.value)}
+                        required={variants.length === 0}
+                      />
+                    </label>
 
-                  <label>
-                    MRP (₹)
-                    <span className="form-help-inline">— optional</span>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      value={form.mrp}
-                      onChange={(e) => updateForm("mrp", e.target.value)}
-                      placeholder="e.g. 120"
-                    />
-                  </label>
+                    <label>
+                      <span className="form-label-inline">
+                        MRP (₹){" "}
+                        <span className="form-help-inline">— optional</span>
+                      </span>
+                      <input
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        value={form.mrp}
+                        onChange={(e) => updateForm("mrp", e.target.value)}
+                        placeholder="e.g. 120"
+                      />
+                    </label>
+                  </div>
 
                   <div className="form-full">
-                    <label>Sizes / quantities</label>
+                    <span className="form-section-label">
+                      Sizes / quantities
+                    </span>
 
                     <VariantEditor variants={variants} onChange={setVariants} />
                   </div>
@@ -1405,7 +1420,9 @@ export default function AdminProducts() {
 
               {pricingType === "type-based" && (
                 <div className="form-full">
-                  <label>Product Types / Quality</label>
+                  <span className="form-section-label">
+                    Product Types / Quality
+                  </span>
 
                   <p className="form-help">
                     Example: Rice → Kolam, Basmati, HMT. Each type can have its
@@ -1437,7 +1454,7 @@ export default function AdminProducts() {
                       </div>
 
                       <strong className="type-editor-title">
-                        Sizes & Prices
+                        Sizes &amp; Prices
                       </strong>
 
                       {type.sizes.map((size, sizeIndex) => (
@@ -1514,7 +1531,7 @@ export default function AdminProducts() {
                           {type.sizes.length > 1 && (
                             <button
                               type="button"
-                              className="icon-btn danger"
+                              className="icon-btn danger variant-remove-btn"
                               onClick={() =>
                                 removeTypeSize(typeIndex, sizeIndex)
                               }
@@ -1527,7 +1544,7 @@ export default function AdminProducts() {
 
                       <button
                         type="button"
-                        className="btn btn-outline"
+                        className="btn btn-outline variant-add-btn"
                         onClick={() => addTypeSize(typeIndex)}
                       >
                         + Add size
@@ -1537,7 +1554,7 @@ export default function AdminProducts() {
 
                   <button
                     type="button"
-                    className="btn btn-outline"
+                    className="btn btn-outline type-add-btn"
                     onClick={addType}
                   >
                     + Add product type
@@ -1545,29 +1562,10 @@ export default function AdminProducts() {
                 </div>
               )}
 
-              {/* CATEGORY */}
-
-              <label>
-                Category
-                <select
-                  value={form.category}
-                  onChange={(e) => updateForm("category", e.target.value)}
-                  required
-                >
-                  <option value="">Select category</option>
-
-                  {categories.map((category) => (
-                    <option key={category._id} value={category._id}>
-                      {category.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
-
               {/* BARCODE */}
 
               <label>
-                Barcode
+                <span>Barcode</span>
                 <input
                   value={form.barcode}
                   onChange={(e) => updateForm("barcode", e.target.value)}
@@ -1580,11 +1578,12 @@ export default function AdminProducts() {
               {/* DESCRIPTION */}
 
               <label className="form-full">
-                Description
+                <span>Description</span>
                 <textarea
                   rows={3}
                   value={form.description}
                   onChange={(e) => updateForm("description", e.target.value)}
+                  placeholder="Optional product details or pack info"
                   maxLength={1000}
                 />
               </label>
@@ -1592,7 +1591,7 @@ export default function AdminProducts() {
               {/* IMAGE */}
 
               <div className="product-image-upload form-full">
-                <label className="form-label">Product image</label>
+                <span className="form-label">Product image</span>
 
                 <div className="image-upload-options">
                   <button
@@ -1602,10 +1601,12 @@ export default function AdminProducts() {
                   >
                     <span className="image-upload-icon">📷</span>
 
-                    <span>
-                      <strong>Take Photo</strong>
+                    <span className="image-upload-text">
+                      <strong className="image-upload-title">Take Photo</strong>
 
-                      <small>Use camera</small>
+                      <small className="image-upload-subtitle">
+                        Use camera
+                      </small>
                     </span>
                   </button>
 
@@ -1616,10 +1617,14 @@ export default function AdminProducts() {
                   >
                     <span className="image-upload-icon">🖼️</span>
 
-                    <span>
-                      <strong>Choose Image</strong>
+                    <span className="image-upload-text">
+                      <strong className="image-upload-title">
+                        Choose Image
+                      </strong>
 
-                      <small>From device</small>
+                      <small className="image-upload-subtitle">
+                        From device
+                      </small>
                     </span>
                   </button>
                 </div>
@@ -1633,37 +1638,44 @@ export default function AdminProducts() {
                 />
 
                 {imagePreview && (
-                  <div className="image-preview">
+                  <div className="product-image-preview image-preview">
                     <img src={imagePreview} alt="Product preview" />
 
-                    <button type="button" onClick={removeImage}>
-                      Remove
-                    </button>
+                    <div className="product-image-preview-meta">
+                      <span>New image ready to upload</span>
+                      <button
+                        type="button"
+                        className="remove-image-btn"
+                        onClick={removeImage}
+                      >
+                        Remove
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
 
-              {/* ACTIVE */}
+              {/* CHECKBOXES */}
 
-              <label className="form-grid-check">
-                <input
-                  type="checkbox"
-                  checked={form.active}
-                  onChange={(e) => updateForm("active", e.target.checked)}
-                />
-                Active
-              </label>
+              <div className="form-checks-row form-full">
+                <label className="form-grid-check">
+                  <input
+                    type="checkbox"
+                    checked={form.active}
+                    onChange={(e) => updateForm("active", e.target.checked)}
+                  />
+                  <span>Active</span>
+                </label>
 
-              {/* FEATURED */}
-
-              <label className="form-grid-check">
-                <input
-                  type="checkbox"
-                  checked={form.featured}
-                  onChange={(e) => updateForm("featured", e.target.checked)}
-                />
-                Show in Featured Products
-              </label>
+                <label className="form-grid-check">
+                  <input
+                    type="checkbox"
+                    checked={form.featured}
+                    onChange={(e) => updateForm("featured", e.target.checked)}
+                  />
+                  <span>Show in Featured Products</span>
+                </label>
+              </div>
 
               {/* ERROR */}
 

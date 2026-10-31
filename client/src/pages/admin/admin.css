@@ -1,16 +1,24 @@
 /* =========================================================
-   ADMIN PAGE HEADER
+   ADMIN PAGE CONTAINER & HEADER
 ========================================================= */
+
+.admin-page-container {
+  width: 100%;
+  min-width: 0;
+  padding-bottom: 48px;
+  box-sizing: border-box;
+}
 
 .admin-page-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  flex-wrap: wrap;
+  gap: 14px;
 
   width: 100%;
   min-width: 0;
-  margin-bottom: 22px;
+  margin-bottom: 20px;
 
   box-sizing: border-box;
 }
@@ -43,11 +51,17 @@
 
   box-sizing: border-box;
 
-  overflow-x: auto;
-  overflow-y: visible;
+  /* Do not set overflow-x: auto on .admin-card directly;
+     .admin-table-scroll handles horizontal table scrolling
+     so vertical mobile page scroll is never trapped. */
+  overflow: visible;
+}
 
-  -webkit-overflow-scrolling: touch;
-  overscroll-behavior-x: contain;
+.admin-state-box,
+.admin-empty-cell {
+  padding: 28px 16px;
+  text-align: center;
+  color: var(--color-text-muted);
 }
 
 
@@ -108,38 +122,45 @@
 
 
 /* =========================================================
-   TABLE CONTAINER
+   TABLE CONTAINERS & MOBILE SCROLL FIX
 ========================================================= */
 
-.admin-table-wrapper {
+.admin-table-wrapper,
+.admin-table-scroll {
   width: 100%;
   max-width: 100%;
   min-width: 0;
 
-  border: 1px solid var(--color-border);
-  border-radius: var(--radius-sm);
-
-  background: var(--color-surface);
-
-  box-sizing: border-box;
-
   overflow-x: auto;
-  overflow-y: hidden;
+  overflow-y: visible;
 
   -webkit-overflow-scrolling: touch;
+  /* Critical fix: allow BOTH horizontal table swipe AND vertical page scroll on mobile */
+  touch-action: pan-x pan-y;
   scrollbar-width: thin;
+
+  box-sizing: border-box;
 }
 
-.admin-table-wrapper::-webkit-scrollbar {
+.admin-table-wrapper {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+  background: var(--color-surface);
+}
+
+.admin-table-wrapper::-webkit-scrollbar,
+.admin-table-scroll::-webkit-scrollbar {
   height: 7px;
 }
 
-.admin-table-wrapper::-webkit-scrollbar-track {
+.admin-table-wrapper::-webkit-scrollbar-track,
+.admin-table-scroll::-webkit-scrollbar-track {
   background: var(--color-bg);
   border-radius: 999px;
 }
 
-.admin-table-wrapper::-webkit-scrollbar-thumb {
+.admin-table-wrapper::-webkit-scrollbar-thumb,
+.admin-table-scroll::-webkit-scrollbar-thumb {
   background: var(--color-border);
   border-radius: 999px;
 }
@@ -151,7 +172,7 @@
 
 .admin-table {
   width: 100%;
-  min-width: 760px;
+  min-width: 740px;
 
   border-collapse: separate;
   border-spacing: 0;
@@ -195,6 +216,14 @@
   box-sizing: border-box;
 }
 
+.admin-cell-name {
+  font-weight: 600;
+  white-space: normal !important;
+  min-width: 160px;
+  max-width: 260px;
+  line-height: 1.35;
+}
+
 .admin-table tbody tr {
   transition: background-color 0.15s ease;
 }
@@ -209,7 +238,7 @@
 
 
 /* =========================================================
-   PRODUCT IMAGE
+   PRODUCT IMAGE IN TABLE
 ========================================================= */
 
 .admin-table img.thumb {
@@ -225,9 +254,21 @@
   background: var(--color-bg);
 }
 
+.thumb-placeholder {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 7px;
+  background: var(--color-bg);
+  color: var(--color-text-muted);
+  font-size: 13px;
+}
+
 
 /* =========================================================
-   ACTION COLUMN
+   ACTION COLUMN & PAGINATION
 ========================================================= */
 
 .admin-table td:last-child {
@@ -236,58 +277,66 @@
 
 .admin-table td:last-child .icon-btn {
   display: inline-flex;
-
   align-items: center;
   justify-content: center;
-
-  margin-right: 4px;
+  margin-right: 6px;
 }
 
 .admin-table td:last-child .icon-btn:last-child {
   margin-right: 0;
 }
 
+.pagination {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
 
-/* =========================================================
-   LEGACY TABLE SCROLL
-========================================================= */
-
-.admin-table-scroll {
-  width: 100%;
-  max-width: 100%;
-  min-width: 0;
-
-  overflow-x: auto;
-  overflow-y: hidden;
-
-  -webkit-overflow-scrolling: touch;
-
-  touch-action: pan-x;
-
-  box-sizing: border-box;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
 }
 
-.admin-table-scroll .admin-table {
-  width: max-content;
-  min-width: 760px;
+.pagination-info {
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--color-text-muted);
 }
 
 
 /* =========================================================
-   BADGES
+   BADGES (SUPPORTS BOTH SPAN & CLICKABLE BUTTONS)
 ========================================================= */
 
 .badge {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
 
-  padding: 3px 9px;
-
+  padding: 4px 10px;
+  border: 0;
   border-radius: 999px;
 
+  font-family: inherit;
   font-size: 12px;
   font-weight: 700;
+  line-height: 1.2;
 
   white-space: nowrap;
+}
+
+button.badge {
+  cursor: pointer;
+  transition: transform 0.12s ease, opacity 0.12s ease;
+}
+
+button.badge:hover {
+  opacity: 0.88;
+}
+
+button.badge:active {
+  transform: scale(0.96);
 }
 
 .badge-active {
@@ -309,7 +358,8 @@
   border: none;
   background: transparent;
 
-  padding: 4px 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
 
   color: var(--color-primary-dark-solid);
 
@@ -320,10 +370,19 @@
   white-space: nowrap;
 
   flex-shrink: 0;
+  transition: background-color 0.15s ease;
+}
+
+.icon-btn:hover {
+  background: var(--color-bg);
 }
 
 .icon-btn.danger {
   color: var(--color-danger);
+}
+
+.icon-btn.danger:hover {
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.08));
 }
 
 
@@ -346,15 +405,25 @@
   box-sizing: border-box;
 }
 
+.admin-toolbar input[type="search"] {
+  flex: 1 1 240px;
+}
+
+.admin-toolbar select {
+  flex: 0 1 220px;
+}
+
 .admin-toolbar input,
 .admin-toolbar select {
   min-width: 0;
   max-width: 100%;
 
-  padding: 9px 12px;
+  padding: 10px 12px;
 
   border: 1.5px solid var(--color-border);
   border-radius: var(--radius-sm);
+  background: var(--color-surface);
+  color: var(--color-text);
 
   font-size: 14px;
 
@@ -363,7 +432,7 @@
 
 
 /* =========================================================
-   MODAL BACKDROP
+   MODAL BACKDROP & MODAL CARD
 ========================================================= */
 
 .modal-backdrop {
@@ -377,9 +446,10 @@
   width: 100%;
   height: 100%;
 
-  padding: 24px;
+  padding: 20px;
 
-  background: rgba(34, 39, 31, 0.55);
+  background: rgba(34, 39, 31, 0.58);
+  backdrop-filter: blur(2px);
 
   z-index: 1000;
 
@@ -389,26 +459,21 @@
   overscroll-behavior: contain;
 }
 
-
-/* =========================================================
-   MODAL CARD
-========================================================= */
-
 .modal-card {
   position: relative;
 
   display: flex;
   flex-direction: column;
 
-  width: min(100%, 560px);
-  max-width: 560px;
+  width: min(100%, 600px);
+  max-width: 600px;
   min-width: 0;
 
-  height: min(100%, calc(100dvh - 48px));
-  max-height: calc(100dvh - 48px);
+  height: auto;
+  max-height: calc(100dvh - 40px);
 
   margin: auto;
-  padding: 26px;
+  padding: 22px 24px;
 
   background: var(--color-surface);
 
@@ -416,7 +481,7 @@
   border-radius: var(--radius-lg);
 
   box-shadow:
-    0 20px 50px rgba(0, 0, 0, 0.18),
+    0 20px 50px rgba(0, 0, 0, 0.2),
     0 4px 14px rgba(0, 0, 0, 0.08);
 
   box-sizing: border-box;
@@ -429,26 +494,41 @@
   box-sizing: border-box;
 }
 
+.modal-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--color-border);
+  flex-shrink: 0;
+}
+
 .modal-card h2 {
   flex-shrink: 0;
-
-  margin: 0 0 20px;
-
+  margin: 0;
   font-size: 20px;
   line-height: 1.3;
-
   color: var(--color-text);
 }
 
+.modal-close-btn {
+  width: 34px;
+  height: 34px;
+  font-size: 22px;
+}
+
+
 /* =========================================================
-   FORM
+   MODAL FORM & INPUTS
 ========================================================= */
 
 .form-grid {
   display: flex;
   flex-direction: column;
 
-  gap: 14px;
+  gap: 16px;
 
   width: 100%;
   min-width: 0;
@@ -460,11 +540,13 @@
   overflow-x: hidden;
 
   padding-right: 4px;
+  padding-bottom: 4px;
 
   box-sizing: border-box;
 
   -webkit-overflow-scrolling: touch;
 }
+
 .form-grid label {
   display: flex;
   flex-direction: column;
@@ -476,8 +558,42 @@
 
   font-size: 13px;
   font-weight: 600;
+  color: var(--color-text);
 
   box-sizing: border-box;
+}
+
+.form-label-inline {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.form-help-inline {
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-text-muted);
+}
+
+.form-section-label {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-text);
+}
+
+.form-help {
+  margin: 0 0 10px;
+  font-size: 12.5px;
+  line-height: 1.45;
+  color: var(--color-text-muted);
+}
+
+.form-full {
+  width: 100%;
+  min-width: 0;
 }
 
 .form-grid input,
@@ -500,20 +616,107 @@
   font-weight: 400;
 
   box-sizing: border-box;
+  transition: border-color 0.15s ease;
+}
+
+.form-grid input:focus,
+.form-grid select:focus,
+.form-grid textarea:focus {
+  outline: none;
+  border-color: var(--color-primary-dark-solid);
 }
 
 .form-grid textarea {
-  min-height: 90px;
+  min-height: 84px;
   resize: vertical;
 }
 
 
 /* =========================================================
-   ACTIVE CHECKBOX
+   VARIANT EDITOR & TYPE-BASED PRICING EDITOR
 ========================================================= */
 
+.variant-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.variant-row {
+  display: grid;
+  grid-template-columns: 1fr 78px 1fr 1fr auto;
+  gap: 8px;
+  align-items: center;
+  width: 100%;
+}
+
+.variant-row input,
+.variant-row select {
+  padding: 8px 10px;
+  font-size: 13.5px;
+}
+
+.variant-remove-btn {
+  padding: 6px 8px;
+}
+
+.variant-add-btn,
+.type-add-btn {
+  align-self: flex-start;
+  font-size: 13px;
+  padding: 7px 12px;
+}
+
+.type-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 14px;
+  margin-bottom: 12px;
+  background: var(--color-bg);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-sm);
+}
+
+.type-editor-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.type-editor-header input {
+  flex: 1 1 auto;
+  font-weight: 600;
+}
+
+.type-editor-title {
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-text-muted);
+  margin-top: 2px;
+}
+
+
+/* =========================================================
+   CHECKBOXES
+========================================================= */
+
+.form-checks-row {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 20px;
+  padding-top: 4px;
+}
+
 .form-grid .form-grid-check {
-  display: flex !important;
+  display: inline-flex !important;
   flex-direction: row !important;
 
   align-items: center !important;
@@ -528,32 +731,29 @@
   margin: 0 !important;
   padding: 0 !important;
 
-  font-size: 13px;
+  font-size: 13.5px;
   font-weight: 600;
 
+  cursor: pointer;
+  user-select: none;
   box-sizing: border-box;
-
-  overflow: hidden;
 }
 
 .form-grid .form-grid-check input[type="checkbox"] {
-  width: 16px !important;
-  min-width: 16px !important;
-  max-width: 16px !important;
+  width: 17px !important;
+  min-width: 17px !important;
+  max-width: 17px !important;
 
-  height: 16px;
-  min-height: 16px;
-  max-height: 16px;
+  height: 17px;
+  min-height: 17px;
+  max-height: 17px;
 
   margin: 0 !important;
   padding: 0 !important;
 
-  flex: 0 0 16px !important;
-
-  box-sizing: border-box;
+  flex: 0 0 17px !important;
 
   cursor: pointer;
-
   accent-color: var(--color-primary-dark-solid);
 }
 
@@ -563,26 +763,19 @@
 ========================================================= */
 
 .form-row {
-  display: flex;
-
-  gap: 14px;
-
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
   width: 100%;
   min-width: 0;
-
   box-sizing: border-box;
-}
-
-.form-row > label,
-.form-row-3 > label {
-  flex: 1 1 0;
-  min-width: 0;
 }
 
 
 /* =========================================================
    MODAL ACTIONS
 ========================================================= */
+
 .modal-actions {
   display: flex;
   align-items: center;
@@ -593,8 +786,9 @@
 
   width: 100%;
 
-  margin-top: 20px;
-  padding-top: 4px;
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-border);
 
   flex-shrink: 0;
 
@@ -609,7 +803,7 @@
 
 
 /* =========================================================
-   IMPORT SUMMARY
+   IMPORT SUMMARY & ERRORS
 ========================================================= */
 
 .import-summary {
@@ -624,11 +818,6 @@
 
   box-sizing: border-box;
 }
-
-
-/* =========================================================
-   IMPORT ERRORS
-========================================================= */
 
 .import-errors {
   width: 100%;
@@ -658,7 +847,7 @@
 
 
 /* =========================================================
-   PRODUCT IMAGE UPLOAD
+   PRODUCT IMAGE UPLOAD & PREVIEW
 ========================================================= */
 
 .product-image-upload {
@@ -698,9 +887,9 @@
   justify-content: center;
 
   min-width: 0;
-  min-height: 120px;
+  min-height: 104px;
 
-  padding: 18px 14px;
+  padding: 14px 12px;
 
   border: 1.5px dashed var(--color-border);
   border-radius: var(--radius-sm);
@@ -728,38 +917,42 @@
 }
 
 .image-upload-icon {
-  margin-bottom: 9px;
-
-  font-size: 28px;
+  margin-bottom: 6px;
+  font-size: 26px;
   line-height: 1;
 }
 
-.image-upload-title {
-  font-size: 14px;
-  font-weight: 700;
+.image-upload-text,
+.image-upload-option span {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+}
 
+.image-upload-title,
+.image-upload-option strong {
+  display: block;
+  font-size: 13.5px;
+  font-weight: 700;
   color: var(--color-text);
 }
 
-.image-upload-subtitle {
-  margin-top: 4px;
-
-  font-size: 11px;
+.image-upload-subtitle,
+.image-upload-option small {
+  display: block;
+  font-size: 11.5px;
   line-height: 1.3;
-
   color: var(--color-text-muted);
 }
 
-
-/* =========================================================
-   IMAGE PREVIEW
-========================================================= */
-
-.product-image-preview {
+.product-image-preview,
+.image-preview {
   position: relative;
 
   display: flex;
   align-items: center;
+  justify-content: space-between;
 
   gap: 12px;
 
@@ -767,36 +960,51 @@
   min-width: 0;
 
   margin-top: 12px;
-  padding: 10px;
+  padding: 10px 12px;
 
   border: 1px solid var(--color-border);
   border-radius: var(--radius-sm);
 
-  background: var(--color-surface);
+  background: var(--color-bg);
 
   box-sizing: border-box;
 
   overflow: hidden;
 }
 
-.product-image-preview img {
-  width: 72px;
-  height: 72px;
-  max-width: 72px;
+.product-image-preview img,
+.image-preview img {
+  width: 64px;
+  height: 64px;
+  max-width: 64px;
 
   object-fit: cover;
 
   border-radius: 7px;
-  background: var(--color-bg);
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
 
   flex-shrink: 0;
 }
 
-.remove-image-btn {
+.product-image-preview-meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1 1 auto;
+  min-width: 0;
+  gap: 10px;
+  font-size: 13px;
+  color: var(--color-text-muted);
+}
+
+.remove-image-btn,
+.image-preview button {
   border: none;
   background: transparent;
 
-  padding: 6px 8px;
+  padding: 6px 10px;
+  border-radius: 6px;
 
   color: var(--color-danger);
 
@@ -804,8 +1012,12 @@
   font-weight: 600;
 
   cursor: pointer;
-
   flex-shrink: 0;
+}
+
+.remove-image-btn:hover,
+.image-preview button:hover {
+  background: var(--color-danger-bg, rgba(220, 38, 38, 0.08));
 }
 
 
@@ -832,7 +1044,7 @@
 
 .camera-modal {
   width: min(100%, 720px);
-  max-height: calc(100vh - 40px);
+  max-height: calc(100dvh - 40px);
 
   display: flex;
   flex-direction: column;
@@ -843,8 +1055,7 @@
 
   border-radius: 16px;
 
-  box-shadow:
-    0 24px 80px rgba(0, 0, 0, 0.3);
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.3);
 
   box-sizing: border-box;
 }
@@ -854,11 +1065,6 @@
   box-sizing: border-box;
 }
 
-
-/* =========================================================
-   CAMERA HEADER
-========================================================= */
-
 .camera-modal-header {
   display: flex;
   align-items: center;
@@ -866,7 +1072,7 @@
 
   gap: 16px;
 
-  padding: 18px 20px;
+  padding: 16px 20px;
 
   border-bottom: 1px solid var(--color-border, #e5e7eb);
 
@@ -875,24 +1081,20 @@
 
 .camera-modal-header h3 {
   margin: 0;
-
   font-size: 18px;
   line-height: 1.3;
-
   color: var(--color-text, #222);
 }
 
 .camera-modal-header p {
   margin: 4px 0 0;
-
   font-size: 13px;
-
   color: var(--color-text-muted, #6b7280);
 }
 
 .camera-close-btn {
-  width: 38px;
-  height: 38px;
+  width: 36px;
+  height: 36px;
 
   display: flex;
   align-items: center;
@@ -906,7 +1108,7 @@
   background: var(--color-bg, #f5f5f5);
   color: var(--color-text, #222);
 
-  font-size: 26px;
+  font-size: 24px;
   line-height: 1;
 
   cursor: pointer;
@@ -921,16 +1123,10 @@
   transform: scale(1.04);
 }
 
-
-/* =========================================================
-   CAMERA VIEW
-========================================================= */
-
 .camera-preview-container {
   position: relative;
 
   width: 100%;
-
   aspect-ratio: 16 / 10;
 
   overflow: hidden;
@@ -942,111 +1138,65 @@
 
 .camera-video {
   display: block;
-
   width: 100%;
   height: 100%;
-
   object-fit: cover;
 }
 
-
-/* =========================================================
-   CAMERA GUIDE FRAME
-========================================================= */
-
 .camera-frame {
   position: absolute;
-
   left: 50%;
   top: 50%;
-
   width: 72%;
   height: 72%;
-
   transform: translate(-50%, -50%);
-
   border: 2px solid rgba(255, 255, 255, 0.9);
   border-radius: 14px;
-
   pointer-events: none;
-
-  box-shadow:
-    0 0 0 9999px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.18);
 }
-
-
-/* =========================================================
-   CAMERA ERROR
-========================================================= */
 
 .camera-error {
   position: absolute;
-
   left: 16px;
   right: 16px;
   bottom: 16px;
-
   z-index: 2;
-
   padding: 11px 14px;
-
   border-radius: 8px;
-
   background: rgba(150, 20, 20, 0.9);
   color: #fff;
-
   font-size: 13px;
-
   text-align: center;
-
   box-sizing: border-box;
 }
-
-
-/* =========================================================
-   CAMERA CONTROLS
-========================================================= */
 
 .camera-controls {
   display: flex;
   align-items: center;
   justify-content: space-between;
-
   gap: 12px;
-
-  padding: 16px 20px;
-
+  padding: 14px 20px;
   border-top: 1px solid var(--color-border, #e5e7eb);
-
   background: var(--color-surface, #fff);
-
   flex-shrink: 0;
-
   box-sizing: border-box;
 }
 
 .camera-capture-btn {
   min-height: 44px;
-
   display: inline-flex;
   align-items: center;
   justify-content: center;
-
   gap: 9px;
-
   padding: 10px 20px;
-
   border: 0;
   border-radius: 9px;
-
   background: var(--color-primary-dark-solid, #2f6b45);
   color: #fff;
-
   font-size: 14px;
   font-weight: 700;
-
   cursor: pointer;
-
   transition:
     transform 0.15s ease,
     opacity 0.15s ease;
@@ -1056,22 +1206,15 @@
   transform: translateY(-1px);
 }
 
-.camera-capture-btn span {
-  font-size: 15px;
-}
-
 .camera-capture-btn:disabled {
   opacity: 0.5;
-
   cursor: not-allowed;
-
   transform: none;
 }
 
 
 /* =========================================================
-   TABLET
-   ≤ 1000px
+   TABLET (≤ 1000px)
 ========================================================= */
 
 @media (max-width: 1000px) {
@@ -1081,11 +1224,11 @@
   }
 
   .admin-card {
-    padding: 18px;
+    padding: 16px;
   }
 
   .admin-table {
-    min-width: 720px;
+    min-width: 700px;
     font-size: 13px;
   }
 
@@ -1095,504 +1238,93 @@
   }
 
   .admin-table img.thumb {
-    width: 40px;
-    height: 40px;
-  }
-
-  .modal-card {
-    width: min(100%, 540px);
-    max-width: 540px;
+    width: 38px;
+    height: 38px;
   }
 }
 
 
 /* =========================================================
-   TABLET / LARGE MOBILE
-   ≤ 800px
+   LARGE MOBILE / SMALL TABLET (≤ 768px)
 ========================================================= */
 
-@media (max-width: 800px) {
+@media (max-width: 768px) {
   .admin-page-header {
     gap: 12px;
-    margin-bottom: 18px;
-  }
-
-  .admin-page-header h1 {
-    font-size: 22px;
-  }
-
-  .admin-stats-grid {
-    gap: 12px;
-    margin-bottom: 22px;
-  }
-
-  .admin-stat {
-    padding: 15px 16px;
-  }
-
-  .admin-stat-value {
-    font-size: 27px;
-  }
-
-  .admin-card {
-    padding: 16px;
-  }
-
-  .admin-toolbar {
-    gap: 8px;
-  }
-
-  .admin-toolbar input,
-  .admin-toolbar select {
-    flex: 1 1 180px;
-  }
-
-  .modal-backdrop {
-    padding: 18px;
-  }
-
-  .modal-card {
-    width: min(100%, 520px);
-    max-width: 520px;
-
-    max-height: calc(100vh - 36px);
-
-    padding: 22px;
-  }
-
-  .import-summary {
-    gap: 10px;
-  }
-}
-
-
-/* =========================================================
-   MOBILE
-   ≤ 640px
-========================================================= */
-
-@media (max-width: 640px) {
-  .admin-page-header {
-    align-items: flex-start;
-
-    gap: 10px;
     margin-bottom: 16px;
   }
 
   .admin-page-header h1 {
-    font-size: 20px;
-    line-height: 1.25;
+    font-size: 21px;
   }
 
-  .admin-card {
-    padding: 13px;
-    border-radius: var(--radius-md);
-  }
-
-
-  /* STATS */
-
-  .admin-stats-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-
-    gap: 10px;
-    margin-bottom: 18px;
-  }
-
-  .admin-stat {
-    padding: 13px 12px;
-  }
-
-  .admin-stat-value {
-    font-size: 24px;
-  }
-
-  .admin-stat-label {
-    font-size: 12px;
-  }
-
-
-  /* TOOLBAR */
-
-  .admin-toolbar {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-
-    gap: 8px;
-    margin-bottom: 14px;
-  }
-
-  .admin-toolbar input,
+  .admin-toolbar input[type="search"],
   .admin-toolbar select {
+    flex: 1 1 100%;
+  }
+
+  .modal-backdrop {
+    padding: 0;
+    align-items: flex-end;
+  }
+
+  .modal-card {
     width: 100%;
-    min-width: 0;
-
-    font-size: 13.5px;
+    max-width: 100%;
+    max-height: 92dvh;
+    margin: 0;
+    padding: 18px 16px;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
-
-  /* TABLE */
-
-  .admin-table-wrapper {
-    width: 100%;
-
-    overflow-x: auto;
-    overflow-y: hidden;
-
-    border-radius: 6px;
+  .form-row {
+    grid-template-columns: 1fr;
+    gap: 14px;
   }
 
-  .admin-table {
-    width: max-content;
-    min-width: 620px;
-
-    font-size: 12px;
+  /* On mobile, wrap the 5-item variant row cleanly into a 2-column grid
+     so Amount, Unit, Price, and MRP are easy to tap and type in */
+  .variant-row {
+    grid-template-columns: 1fr 90px;
+    gap: 8px;
+    padding-bottom: 10px;
+    border-bottom: 1px dashed var(--color-border);
   }
 
-  .admin-table th {
-    padding: 9px 10px;
-    font-size: 10.5px;
+  .variant-row:last-of-type {
+    border-bottom: none;
+    padding-bottom: 0;
   }
 
-  .admin-table td {
-    padding: 9px 10px;
+  .variant-remove-btn {
+    grid-column: 1 / -1;
+    justify-self: flex-end;
   }
 
-  .admin-table img.thumb {
-    width: 36px;
-    height: 36px;
+  .modal-actions .btn {
+    flex: 1 1 0;
+    justify-content: center;
   }
-
-
-  /* MODAL */
-
-  /* MODAL */
-
-.modal-backdrop {
-  align-items: center;
-  justify-content: center;
-
-  padding: 12px;
-
-  overflow: hidden;
-}
-
-.modal-card {
-  width: 100%;
-  max-width: 480px;
-
-  height: calc(100dvh - 24px);
-  max-height: calc(100dvh - 24px);
-
-  margin: 0 auto;
-  padding: 18px;
-
-  border-radius: var(--radius-lg);
-
-  overflow: hidden;
-}
-
-.modal-card h2 {
-  flex-shrink: 0;
-
-  margin-bottom: 16px;
-  font-size: 18px;
-}
-
-.form-grid {
-  gap: 12px;
-
-  flex: 1 1 auto;
-  min-height: 0;
-
-  overflow-y: auto;
-  overflow-x: hidden;
-
-  padding-right: 3px;
-}
-
-.modal-actions {
-  flex-shrink: 0;
-
-  justify-content: stretch;
-  gap: 8px;
-}
-
-.modal-actions > * {
-  flex: 1 1 0;
-}
-
-  /* IMPORT */
 
   .import-summary {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 7px;
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
-
-  .import-errors {
-    font-size: 12px;
-  }
-
-
-  /* CAMERA */
 
   .camera-modal-backdrop {
     padding: 0;
+    align-items: flex-end;
   }
 
   .camera-modal {
     width: 100%;
-    height: 100%;
-    max-height: none;
-
-    border-radius: 0;
-  }
-
-  .camera-modal-header {
-    padding: 15px 16px;
-  }
-
-  .camera-modal-header h3 {
-    font-size: 17px;
+    max-height: 95dvh;
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
   }
 
   .camera-preview-container {
-    flex: 1;
-
-    aspect-ratio: auto;
-    min-height: 0;
+    aspect-ratio: 4 / 3;
   }
-
-  .camera-frame {
-    width: 78%;
-    height: 70%;
-  }
-
-  .camera-controls {
-    padding: 14px 16px;
-    padding-bottom: max(
-      14px,
-      env(safe-area-inset-bottom)
-    );
-  }
-
-  .camera-capture-btn {
-    flex: 1;
-    min-height: 48px;
-  }
-
-  .camera-controls .btn {
-    min-height: 48px;
-  }
-}
-
-
-/* =========================================================
-   SMALL MOBILE
-   ≤ 480px
-========================================================= */
-
-@media (max-width: 480px) {
-  .admin-page-header {
-    flex-wrap: wrap;
-  }
-
-  .admin-page-header h1 {
-    font-size: 19px;
-  }
-
-  .admin-card {
-    padding: 11px;
-  }
-
-  .admin-stats-grid {
-    gap: 8px;
-  }
-
-  .admin-stat {
-    padding: 12px 10px;
-  }
-
-  .admin-stat-value {
-    font-size: 22px;
-  }
-
-  .admin-stat-label {
-    font-size: 11px;
-  }
-
-
-  /* TABLE */
-
-  .admin-table-wrapper {
-    margin-left: 0;
-    margin-right: 0;
-
-    width: 100%;
-
-    overflow-x: auto;
-  }
-
-  .admin-table {
-    min-width: 600px;
-  }
-
-
-  /* IMAGE UPLOAD */
-
-  .image-upload-options {
-    grid-template-columns: 1fr;
-    gap: 8px;
-  }
-
-  .image-upload-option {
-    flex-direction: row;
-    justify-content: flex-start;
-
-    min-height: 72px;
-
-    gap: 12px;
-
-    padding: 12px;
-
-    text-align: left;
-  }
-
-  .image-upload-icon {
-    width: 38px;
-    height: 38px;
-
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    flex-shrink: 0;
-
-    margin: 0;
-
-    font-size: 20px;
-  }
-
-  .image-upload-title,
-  .image-upload-subtitle {
-    display: block;
-  }
-
-
-  /* MODAL */
-
-  .modal-backdrop {
-  padding: 8px;
-
-  overflow: hidden;
-}
-
-.modal-card {
-  width: 100%;
-  max-width: 460px;
-
-  height: calc(100dvh - 16px);
-  max-height: calc(100dvh - 16px);
-
-  padding: 16px;
-
-  border-radius: var(--radius-md);
-
-  overflow: hidden;
-}
-
-  .modal-actions {
-    flex-direction: column;
-  }
-
-  .modal-actions > * {
-    width: 100%;
-    flex: none;
-  }
-
-  .import-summary {
-    gap: 6px;
-  }
-}
-
-
-/* =========================================================
-   VERY SMALL PHONES
-   ≤ 360px
-========================================================= */
-
-@media (max-width: 360px) {
-  .admin-page-header h1 {
-    font-size: 18px;
-  }
-
-  .admin-card {
-    padding: 9px;
-  }
-
-  .admin-stats-grid {
-    gap: 6px;
-  }
-
-  .admin-stat {
-    padding: 10px 8px;
-  }
-
-  .admin-stat-value {
-    font-size: 20px;
-  }
-
-  .admin-stat-label {
-    font-size: 10.5px;
-  }
-
-  .admin-table {
-    min-width: 580px;
-  }
-
-  .modal-card {
-    padding: 14px;
-  }
-
-  .modal-card h2 {
-    font-size: 17px;
-  }
-
-  .import-summary {
-    grid-template-columns: 1fr;
-  }
-}
-
-
-/* =========================================================
-   GLOBAL ADMIN SAFETY
-========================================================= */
-
-.admin-shell,
-.admin-content,
-.admin-card,
-.admin-stats-grid,
-.admin-stat,
-.admin-page-header,
-.admin-toolbar,
-.admin-table-wrapper,
-.modal-card {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.admin-shell img {
-  max-width: 100%;
-}
-
-.admin-shell button {
-  max-width: 100%;
-  box-sizing: border-box;
-}
-
-.admin-shell input,
-.admin-shell select,
-.admin-shell textarea {
-  max-width: 100%;
-  box-sizing: border-box;
 }

@@ -588,7 +588,7 @@ export function ProductCard({ product, onAddItem }) {
         <div className="dm-card-footer">
           <div className="dm-price-block">
             <div className="dm-price-line">
-              {requiresSelection && <span className="dm-price-from">From</span>}
+              {requiresSelection && <span className="dm-price-from"></span>}
               <span className="dm-price-current">
                 {formatCurrency(displayPrice)}
               </span>
@@ -605,7 +605,7 @@ export function ProductCard({ product, onAddItem }) {
                   Save {formatCurrency(savingsAmount)}
                 </span>
               ) : (
-                <span className="dm-best-price-tag">Daily Best Price</span>
+                <span className="dm-best-price-tag">DailyMart Price</span>
               )}
             </div>
           </div>
