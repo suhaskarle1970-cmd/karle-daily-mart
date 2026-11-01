@@ -13,7 +13,7 @@ export function buildWhatsAppMessage({
   total,
 }) {
   const lines = [
-    `Hello ${storeName},`,
+    `Hello Daily Mart Super Market,`,
     "",
     "I would like to place an order.",
     "",

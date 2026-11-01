@@ -38,7 +38,7 @@ const storeConfigSchema = new mongoose.Schema(
   {
     storeName: {
       type: String,
-      default: "Karke Daily Mart",
+      default: "Daily Mart Super Market",
     },
 
     storePhone: {

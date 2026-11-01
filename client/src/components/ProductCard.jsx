@@ -1,4 +1,6 @@
 import { memo, useCallback, useState } from "react";
+import { Link } from "react-router-dom";
+import { useCart } from "../context/CartContext";
 
 /* ============================================================
    CONSTANTS & HELPERS
@@ -315,6 +317,10 @@ const CARD_STYLES = `
   background: linear-gradient(135deg, #1f6b4a 0%, #155238 100%);
   color: #ffffff;
   border: 1px solid #155238;
+  transition: opacity 0.15s ease, background 0.15s ease;
+}
+.dm-cta-add.is-added {
+  background: linear-gradient(135deg, #146c43 0%, #0f5132 100%) !important;
 }
 .dm-cta-options {
   background: #f1f8f4;
@@ -329,104 +335,18 @@ const CARD_STYLES = `
 }
 `;
 
-const DEMO_PRODUCTS = [
-  {
-    _id: "demo-1",
-    name: "Aashirvaad Select Sharbati Whole Wheat Atta",
-    category: { name: "Flour & Atta" },
-    pricingType: "standard",
-    price: 245,
-    mrp: 290,
-    amount: 5,
-    unit: "kg",
-    featured: true,
-    imageUrl:
-      "https://images.unsplash.com/photo-1574323347407-f5e1ad6d020b?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    _id: "demo-2",
-    name: "India Gate Premium Basmati & Kolam Rice",
-    category: { name: "Rice & Grains" },
-    pricingType: "type-based",
-    featured: true,
-    types: [
-      {
-        name: "Dubar Basmati",
-        sizes: [
-          { amount: 1, unit: "kg", price: 115, mrp: 135 },
-          { amount: 5, unit: "kg", price: 540, mrp: 650 },
-        ],
-      },
-    ],
-    imageUrl:
-      "https://images.unsplash.com/photo-1586201375761-83865001e31c?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    _id: "demo-3",
-    name: "Fortune Sunlite Refined Sunflower Oil",
-    category: { name: "Cooking Oils" },
-    pricingType: "standard",
-    variants: [
-      { amount: 1, unit: "L", price: 138, mrp: 165 },
-      { amount: 5, unit: "L", price: 675, mrp: 810 },
-    ],
-    imageUrl:
-      "https://images.unsplash.com/photo-1474979266404-7eaacbcd87c5?auto=format&fit=crop&w=500&q=80",
-  },
-  {
-    _id: "demo-4",
-    name: "Tata Tea Gold Rich Assam Tea Leaves",
-    category: { name: "Tea & Coffee" },
-    pricingType: "standard",
-    price: 140,
-    mrp: 140,
-    amount: 500,
-    unit: "g",
-    imageUrl:
-      "https://images.unsplash.com/photo-1564890369478-c89ca6d9cde9?auto=format&fit=crop&w=500&q=80",
-  },
-];
-
 /* ============================================================
    SINGLE PRODUCT CARD COMPONENT
 ============================================================ */
 
 export function ProductCard({ product, onAddItem }) {
   const [justAdded, setJustAdded] = useState(false);
+  const cart = useCart();
 
-  if (!product) {
-    return (
-      <div style={{ padding: 24, background: "#faf7f0", minHeight: "100vh" }}>
-        <style>{CARD_STYLES}</style>
-        <div style={{ maxWidth: 1100, margin: "0 auto" }}>
-          <h2
-            style={{ fontFamily: "serif", color: "#144932", marginBottom: 6 }}
-          >
-            Daily Mart — Upgraded ProductCard Preview
-          </h2>
-          <p style={{ color: "#5a6358", fontSize: 14, marginBottom: 20 }}>
-            Showing all 4 card states: Direct Add with Discount, Type-Based
-            Rice, Multi-Size Variants, and Daily Best Price.
-          </p>
-          <div
-            style={{
-              display: "grid",
-              gridTemplateColumns: "repeat(auto-fill, minmax(260px, 1fr))",
-              gap: 16,
-            }}
-          >
-            {DEMO_PRODUCTS.map((item) => (
-              <ProductCard
-                key={item._id}
-                product={item}
-                onAddItem={onAddItem}
-              />
-            ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
+  // Resolve the cart add function whether passed via prop or directly from CartContext
+  const addToCart = onAddItem || cart?.addItem || cart?.addToCart || cart?.add;
+
+  if (!product) return null;
 
   const isOutOfStock =
     product.active === false ||
@@ -476,7 +396,6 @@ export function ProductCard({ product, onAddItem }) {
     ? Math.max(0, displayMrp - displayPrice)
     : 0;
 
-  const requiresSelection = isTypeBased || hasVariants;
   const totalOptionsCount = getTotalSizeCount(
     isTypeBased,
     product.types,
@@ -503,14 +422,65 @@ export function ProductCard({ product, onAddItem }) {
     (e) => {
       e.preventDefault();
       e.stopPropagation();
-      if (requiresSelection || isOutOfStock) return;
-      if (onAddItem) {
-        onAddItem(product, 1, null, null);
+      if (isOutOfStock || !addToCart) return;
+
+      const variantLabel = displaySize
+        ? `${displaySize.amount} ${displaySize.unit}`
+        : "";
+
+      // Enrich product with resolved price/MRP and cart fields so any CartContext signature works
+      const productPayload = {
+        ...product,
+        productId: product._id,
+        price: displayPrice,
+        mrp: displayMrp,
+        type: displayType || "",
+        variant: variantLabel,
+        quantity: 1,
+      };
+
+      const fnStr = addToCart.toString();
+      const paramHeader = fnStr.slice(0, fnStr.indexOf("{")).toLowerCase();
+      const expectsVariantObject =
+        /\.amount\b|\.unit\b/.test(fnStr) && Boolean(displaySize);
+      const variantArg = expectsVariantObject
+        ? displaySize
+        : variantLabel || null;
+
+      if (/,\s*(\{|options|opts|config)/.test(paramHeader)) {
+        // Matches: addItem(product, { quantity, type, variant, size, price, mrp })
+        addToCart(productPayload, {
+          quantity: 1,
+          type: displayType || "",
+          variant: variantLabel,
+          size: displaySize,
+          price: displayPrice,
+          mrp: displayMrp,
+        });
+      } else if (
+        paramHeader.indexOf("type") !== -1 &&
+        paramHeader.indexOf("variant") !== -1 &&
+        paramHeader.indexOf("type") < paramHeader.indexOf("variant")
+      ) {
+        // Matches: addItem(product, quantity, type, variant)
+        addToCart(productPayload, 1, displayType || null, variantArg);
+      } else {
+        // Matches: addItem(product, quantity, variant, type) or addItem(itemObj)
+        addToCart(productPayload, 1, variantArg, displayType || null);
       }
+
       setJustAdded(true);
       setTimeout(() => setJustAdded(false), 1200);
     },
-    [onAddItem, product, requiresSelection, isOutOfStock],
+    [
+      addToCart,
+      product,
+      isOutOfStock,
+      displayPrice,
+      displayMrp,
+      displayType,
+      displaySize,
+    ],
   );
 
   return (
@@ -518,8 +488,8 @@ export function ProductCard({ product, onAddItem }) {
       className={`product-card dm-card ${isOutOfStock ? "is-out-of-stock" : ""}`}
     >
       <style>{CARD_STYLES}</style>
-      <a
-        href={`/products/${product._id}`}
+      <Link
+        to={`/products/${product._id}`}
         className="dm-card-media"
         aria-label={product.name}
       >
@@ -550,45 +520,44 @@ export function ProductCard({ product, onAddItem }) {
             <span className="dm-oos-pill">Out of Stock</span>
           </div>
         )}
-      </a>
+      </Link>
 
       <div className="dm-card-body">
         <div className="dm-card-category" title={categoryName || "Daily Mart"}>
           {categoryName || "Daily Essentials"}
         </div>
 
-        <a
-          href={`/products/${product._id}`}
+        <Link
+          to={`/products/${product._id}`}
           className="dm-card-title"
           title={product.name}
         >
           {product.name}
-        </a>
+        </Link>
 
-        {requiresSelection ? (
-          <a
-            href={`/products/${product._id}`}
-            className="dm-pack-box dm-pack-selectable"
-            title={`Starting from ${basePackText}`}
-          >
-            <span className="dm-pack-text">
-              {basePackText}
-              {optionsCountLabel ? ` • ${optionsCountLabel}` : ""}
-            </span>
+        <Link
+          to={`/products/${product._id}`}
+          className={`dm-pack-box ${totalOptionsCount > 1 ? "dm-pack-selectable" : ""}`}
+          title={
+            totalOptionsCount > 1
+              ? `Click to view all ${totalOptionsCount} sizes`
+              : basePackText
+          }
+        >
+          <span className="dm-pack-text">
+            {basePackText}
+            {optionsCountLabel ? ` • ${optionsCountLabel}` : ""}
+          </span>
+          {totalOptionsCount > 1 && (
             <span className="dm-pack-arrow" aria-hidden="true">
               ▾
             </span>
-          </a>
-        ) : (
-          <div className="dm-pack-box">
-            <span className="dm-pack-text">{basePackText}</span>
-          </div>
-        )}
+          )}
+        </Link>
 
         <div className="dm-card-footer">
           <div className="dm-price-block">
             <div className="dm-price-line">
-              {requiresSelection && <span className="dm-price-from"></span>}
               <span className="dm-price-current">
                 {formatCurrency(displayPrice)}
               </span>
@@ -618,16 +587,6 @@ export function ProductCard({ product, onAddItem }) {
             >
               Out of Stock
             </button>
-          ) : requiresSelection ? (
-            <a
-              href={`/products/${product._id}`}
-              className="dm-cta-btn dm-cta-options"
-            >
-              <span>Select Options</span>
-              <span className="dm-cta-chevron" aria-hidden="true">
-                ▾
-              </span>
-            </a>
           ) : (
             <button
               type="button"

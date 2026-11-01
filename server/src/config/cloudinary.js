@@ -7,7 +7,7 @@ cloudinary.config({
   secure: true,
 });
 
-const FOLDER = "karke-daily-mart";
+const FOLDER = "Daily Mart Super Market";
 
 export function uploadImageBuffer(buffer, { folder = "products" } = {}) {
   return new Promise((resolve, reject) => {
