@@ -60,7 +60,8 @@ function resolveDepartment(rawDepartment, categoryName) {
 
 // CSV columns supported:
 // Required: name, price, category
-// Optional: barcode, description, department, variantUnit, variantAmount, variantPrice
+// Optional: barcode, description, department, mrp, variantUnit, variantAmount, variantPrice
+
 export async function importProducts(req, res, next) {
   try {
     if (!req.file) {
@@ -141,6 +142,26 @@ export async function importProducts(req, res, next) {
           throw new Error("Price cannot be negative");
         }
 
+        // --- MRP Validation ---
+        const rawMrp =
+          row.mrp !== undefined && String(row.mrp).trim() !== ""
+            ? Number(String(row.mrp).trim())
+            : undefined;
+
+        if (rawMrp !== undefined && (Number.isNaN(rawMrp) || rawMrp < 0)) {
+          errors.push(`Row ${rowNum}: MRP cannot be negative or invalid`);
+          failed++;
+          continue;
+        }
+
+        if (rawMrp !== undefined && rawMrp < price) {
+          errors.push(`Row ${rowNum}: MRP cannot be lower than selling price`);
+          failed++;
+          continue;
+        }
+
+        const mrp = rawMrp !== undefined ? rawMrp : undefined;
+
         // -----------------------------------------
         // Variant validation
         // -----------------------------------------
@@ -174,6 +195,7 @@ export async function importProducts(req, res, next) {
               unit: variantUnit,
               amount: Number(variantAmountRaw),
               price: variantPriceRaw ? Number(variantPriceRaw) : price,
+              ...(mrp !== undefined ? { mrp } : {}),
             },
           ];
         }
@@ -209,6 +231,9 @@ export async function importProducts(req, res, next) {
         if (existing) {
           existing.name = name;
           existing.price = price;
+          if (mrp !== undefined) {
+            existing.mrp = mrp;
+          }
           existing.category = categoryId;
 
           if (description) {
@@ -223,6 +248,7 @@ export async function importProducts(req, res, next) {
           await existing.save();
           results.updated++;
         }
+
         // -----------------------------------------
         // Create new product
         // -----------------------------------------
@@ -230,6 +256,7 @@ export async function importProducts(req, res, next) {
           await Product.create({
             name,
             price,
+            ...(mrp !== undefined ? { mrp } : {}),
             category: categoryId,
             barcode: barcode || undefined, // Avoid storing "" which breaks sparse unique indexes
             description: description || undefined,
@@ -250,5 +277,5 @@ export async function importProducts(req, res, next) {
     res.json(results);
   } catch (err) {
     next(err);
-  }
+  } 
 }
