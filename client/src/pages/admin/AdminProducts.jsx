@@ -107,15 +107,16 @@ function VariantEditor({ variants, onChange }) {
             type="number"
             min="0"
             step="any"
-            placeholder="Amount"
-            value={variant.amount}
+            placeholder="Amount (optional)"
+            value={variant.amount ?? ""}
             onChange={(e) => updateRow(index, "amount", e.target.value)}
           />
 
           <select
-            value={variant.unit}
+            value={variant.unit || ""}
             onChange={(e) => updateRow(index, "unit", e.target.value)}
           >
+            <option value="">No unit</option>
             {UNITS.map((unit) => (
               <option key={unit} value={unit}>
                 {unit}
@@ -381,7 +382,7 @@ export default function AdminProducts() {
     setVariants(
       Array.isArray(product.variants)
         ? product.variants.map((variant) => ({
-            unit: variant.unit || "kg",
+            unit: variant.amount ? variant.unit || "kg" : "",
             amount: variant.amount ?? "",
             price: variant.price ?? "",
             mrp: variant.mrp ?? "",
@@ -402,7 +403,7 @@ export default function AdminProducts() {
           sizes:
             Array.isArray(type.sizes) && type.sizes.length > 0
               ? type.sizes.map((size) => ({
-                  unit: size.unit || "kg",
+                  unit: size.amount ? size.unit || "kg" : "kg",
                   amount: size.amount ?? "",
                   price: size.price ?? "",
                   mrp: size.mrp ?? "",
@@ -472,22 +473,29 @@ export default function AdminProducts() {
   }
 
   /* =========================================================
-     STANDARD VARIANTS
+     STANDARD VARIANTS (Amount & Unit Optional)
   ========================================================= */
 
   function validateStandardVariants() {
     const seen = new Set();
 
     for (const variant of variants) {
-      if (
-        !isValidNonNegativeNumber(variant.amount) ||
-        Number(variant.amount) <= 0
-      ) {
-        return "Every size needs a positive amount.";
+      const hasAmount =
+        variant.amount !== "" &&
+        variant.amount !== null &&
+        variant.amount !== undefined;
+
+      if (hasAmount) {
+        if (
+          !isValidNonNegativeNumber(variant.amount) ||
+          Number(variant.amount) <= 0
+        ) {
+          return "Amount must be a positive number when provided.";
+        }
       }
 
       if (!isValidNonNegativeNumber(variant.price)) {
-        return "Every size needs a valid price.";
+        return "Every size option needs a valid selling price.";
       }
 
       if (
@@ -504,20 +512,23 @@ export default function AdminProducts() {
         }
       }
 
-      const key = `${Number(variant.amount)}-${variant.unit}`;
+      if (hasAmount) {
+        const unit = variant.unit || "kg";
+        const key = `${Number(variant.amount)}-${unit}`;
 
-      if (seen.has(key)) {
-        return `Duplicate size found: ${variant.amount} ${variant.unit}.`;
+        if (seen.has(key)) {
+          return `Duplicate size found: ${variant.amount} ${unit}.`;
+        }
+
+        seen.add(key);
       }
-
-      seen.add(key);
     }
 
     return null;
   }
 
   /* =========================================================
-     TYPE-BASED VALIDATION
+     TYPE-BASED VALIDATION (Amount & Unit Optional)
   ========================================================= */
 
   function validateTypes() {
@@ -543,21 +554,28 @@ export default function AdminProducts() {
       typeNames.add(normalizedName);
 
       if (!Array.isArray(type.sizes) || type.sizes.length === 0) {
-        return `Add at least one size for ${typeName}.`;
+        return `Add at least one price option for ${typeName}.`;
       }
 
       const sizeKeys = new Set();
 
       for (const size of type.sizes) {
-        if (
-          !isValidNonNegativeNumber(size.amount) ||
-          Number(size.amount) <= 0
-        ) {
-          return `Every size in ${typeName} needs a positive amount.`;
+        const hasAmount =
+          size.amount !== "" &&
+          size.amount !== null &&
+          size.amount !== undefined;
+
+        if (hasAmount) {
+          if (
+            !isValidNonNegativeNumber(size.amount) ||
+            Number(size.amount) <= 0
+          ) {
+            return `Amount in ${typeName} must be positive when provided.`;
+          }
         }
 
         if (!isValidNonNegativeNumber(size.price)) {
-          return `Every size in ${typeName} needs a valid price.`;
+          return `Every option in ${typeName} needs a valid selling price.`;
         }
 
         if (size.mrp !== "" && size.mrp !== null && size.mrp !== undefined) {
@@ -570,13 +588,16 @@ export default function AdminProducts() {
           }
         }
 
-        const sizeKey = `${Number(size.amount)}-${size.unit}`;
+        if (hasAmount) {
+          const unit = size.unit || "kg";
+          const sizeKey = `${Number(size.amount)}-${unit}`;
 
-        if (sizeKeys.has(sizeKey)) {
-          return `Duplicate size ${size.amount} ${size.unit} in ${typeName}.`;
+          if (sizeKeys.has(sizeKey)) {
+            return `Duplicate size ${size.amount} ${unit} in ${typeName}.`;
+          }
+
+          sizeKeys.add(sizeKey);
         }
-
-        sizeKeys.add(sizeKey);
       }
     }
 
@@ -644,12 +665,15 @@ export default function AdminProducts() {
       "variants",
       JSON.stringify(
         pricingType === "standard"
-          ? variants.map((variant) => ({
-              unit: variant.unit,
-              amount: Number(variant.amount),
-              price: Number(variant.price),
-              mrp: normalizeOptionalNumber(variant.mrp),
-            }))
+          ? variants.map((variant) => {
+              const parsedAmount = normalizeOptionalNumber(variant.amount);
+              return {
+                unit: parsedAmount ? variant.unit || "kg" : "",
+                amount: parsedAmount,
+                price: Number(variant.price),
+                mrp: normalizeOptionalNumber(variant.mrp),
+              };
+            })
           : [],
       ),
     );
@@ -660,12 +684,15 @@ export default function AdminProducts() {
         pricingType === "type-based"
           ? types.map((type) => ({
               name: type.name.trim(),
-              sizes: type.sizes.map((size) => ({
-                unit: size.unit,
-                amount: Number(size.amount),
-                price: Number(size.price),
-                mrp: normalizeOptionalNumber(size.mrp),
-              })),
+              sizes: type.sizes.map((size) => {
+                const parsedAmount = normalizeOptionalNumber(size.amount);
+                return {
+                  unit: parsedAmount ? size.unit || "kg" : "",
+                  amount: parsedAmount,
+                  price: Number(size.price),
+                  mrp: normalizeOptionalNumber(size.mrp),
+                };
+              }),
             }))
           : [],
       ),
@@ -1466,7 +1493,7 @@ export default function AdminProducts() {
                             type="number"
                             min="0"
                             step="any"
-                            placeholder="Amount"
+                            placeholder="Qunantity"
                             value={size.amount}
                             onChange={(e) =>
                               updateTypeSize(

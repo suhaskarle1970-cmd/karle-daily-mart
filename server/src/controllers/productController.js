@@ -12,6 +12,8 @@ const DEPARTMENTS = [
   "stationery",
 ];
 
+const ALLOWED_UNITS = ["g", "kg", "ml", "l", "pcs", ""];
+
 /* =========================================================
    HELPERS
 ========================================================= */
@@ -48,8 +50,17 @@ function parseVariants(raw) {
   }
 
   return parsed.map((v, i) => {
-    const unit = String(v.unit || "").trim();
-    const amount = Number(v.amount);
+    const hasAmount =
+      v.amount !== undefined &&
+      v.amount !== null &&
+      String(v.amount).trim() !== "";
+
+    const amount = hasAmount ? Number(v.amount) : null;
+    const unit = hasAmount
+      ? String(v.unit || "")
+          .trim()
+          .toLowerCase()
+      : "";
     const price = Number(v.price);
 
     const mrp =
@@ -57,27 +68,31 @@ function parseVariants(raw) {
         ? null
         : Number(v.mrp);
 
-    /* UNIT */
+    /* AMOUNT & UNIT (Only required when an amount is entered) */
+    if (hasAmount) {
+      if (!Number.isFinite(amount) || amount <= 0) {
+        throw Object.assign(
+          new Error(`Variant ${i + 1}: amount must be a positive number.`),
+          { status: 400 },
+        );
+      }
 
-    if (!["g", "kg", "ml", "l", "pcs"].includes(unit)) {
-      throw Object.assign(
-        new Error(`Variant ${i + 1}: unit must be g, kg, ml, l, or pcs.`),
-        { status: 400 },
-      );
-    }
-
-    /* AMOUNT */
-
-    if (!Number.isFinite(amount) || amount <= 0) {
-      throw Object.assign(
-        new Error(`Variant ${i + 1}: amount must be a positive number.`),
-        { status: 400 },
-      );
+      if (!ALLOWED_UNITS.includes(unit)) {
+        throw Object.assign(
+          new Error(`Variant ${i + 1}: unit must be g, kg, ml, l, or pcs.`),
+          { status: 400 },
+        );
+      }
     }
 
     /* SELLING PRICE */
-
-    if (!Number.isFinite(price) || price < 0) {
+    if (
+      v.price === undefined ||
+      v.price === null ||
+      v.price === "" ||
+      !Number.isFinite(price) ||
+      price < 0
+    ) {
       throw Object.assign(
         new Error(`Variant ${i + 1}: price must be a valid number.`),
         { status: 400 },
@@ -85,7 +100,6 @@ function parseVariants(raw) {
     }
 
     /* MRP */
-
     if (mrp !== null && (!Number.isFinite(mrp) || mrp < 0)) {
       throw Object.assign(
         new Error(`Variant ${i + 1}: MRP must be a valid number.`),
@@ -94,7 +108,6 @@ function parseVariants(raw) {
     }
 
     /* MRP CANNOT BE LOWER THAN SELLING PRICE */
-
     if (mrp !== null && mrp < price) {
       throw Object.assign(
         new Error(`Variant ${i + 1}: MRP cannot be lower than selling price.`),
@@ -145,15 +158,24 @@ function parseProductTypes(raw) {
     if (!Array.isArray(type.sizes) || type.sizes.length === 0) {
       throw Object.assign(
         new Error(
-          `Product type ${typeIndex + 1}: at least one size is required.`,
+          `Product type ${typeIndex + 1}: at least one price option is required.`,
         ),
         { status: 400 },
       );
     }
 
     const sizes = type.sizes.map((size, sizeIndex) => {
-      const unit = String(size.unit || "").trim();
-      const amount = Number(size.amount);
+      const hasAmount =
+        size.amount !== undefined &&
+        size.amount !== null &&
+        String(size.amount).trim() !== "";
+
+      const amount = hasAmount ? Number(size.amount) : null;
+      const unit = hasAmount
+        ? String(size.unit || "")
+            .trim()
+            .toLowerCase()
+        : "";
       const price = Number(size.price);
 
       const mrp =
@@ -161,28 +183,35 @@ function parseProductTypes(raw) {
           ? null
           : Number(size.mrp);
 
-      // UNIT
-      if (!["g", "kg", "ml", "l", "pcs"].includes(unit)) {
-        throw Object.assign(
-          new Error(`${name} - Size ${sizeIndex + 1}: invalid unit.`),
-          { status: 400 },
-        );
-      }
+      // AMOUNT & UNIT (Optional — only validate if amount is entered)
+      if (hasAmount) {
+        if (!Number.isFinite(amount) || amount <= 0) {
+          throw Object.assign(
+            new Error(
+              `${name} - Option ${sizeIndex + 1}: amount must be positive.`,
+            ),
+            { status: 400 },
+          );
+        }
 
-      // AMOUNT
-      if (!Number.isFinite(amount) || amount <= 0) {
-        throw Object.assign(
-          new Error(
-            `${name} - Size ${sizeIndex + 1}: amount must be positive.`,
-          ),
-          { status: 400 },
-        );
+        if (!ALLOWED_UNITS.includes(unit)) {
+          throw Object.assign(
+            new Error(`${name} - Option ${sizeIndex + 1}: invalid unit.`),
+            { status: 400 },
+          );
+        }
       }
 
       // PRICE
-      if (!Number.isFinite(price) || price < 0) {
+      if (
+        size.price === undefined ||
+        size.price === null ||
+        size.price === "" ||
+        !Number.isFinite(price) ||
+        price < 0
+      ) {
         throw Object.assign(
-          new Error(`${name} - Size ${sizeIndex + 1}: price must be valid.`),
+          new Error(`${name} - Option ${sizeIndex + 1}: price must be valid.`),
           { status: 400 },
         );
       }
@@ -190,7 +219,7 @@ function parseProductTypes(raw) {
       // MRP
       if (mrp !== null && (!Number.isFinite(mrp) || mrp < 0)) {
         throw Object.assign(
-          new Error(`${name} - Size ${sizeIndex + 1}: MRP must be valid.`),
+          new Error(`${name} - Option ${sizeIndex + 1}: MRP must be valid.`),
           { status: 400 },
         );
       }
@@ -199,7 +228,7 @@ function parseProductTypes(raw) {
       if (mrp !== null && mrp < price) {
         throw Object.assign(
           new Error(
-            `${name} - Size ${sizeIndex + 1}: MRP cannot be lower than selling price.`,
+            `${name} - Option ${sizeIndex + 1}: MRP cannot be lower than selling price.`,
           ),
           { status: 400 },
         );
@@ -221,7 +250,7 @@ function parseProductTypes(raw) {
 }
 
 /* ========================================================= 
-LIST PRODUCTS 
+   LIST PRODUCTS 
 ========================================================= */
 
 export async function listProducts(req, res, next) {
@@ -303,10 +332,6 @@ export async function createProduct(req, res, next) {
       pricingType,
     } = req.body;
 
-    // ============================================================
-    // BASIC REQUIRED FIELDS
-    // ============================================================
-
     if (!name || !category) {
       return res.status(400).json({
         message: "Name and category are required.",
@@ -316,37 +341,30 @@ export async function createProduct(req, res, next) {
     const finalPricingType =
       pricingType === "type-based" ? "type-based" : "standard";
 
-    // ============================================================
-    // PARSE PRODUCT TYPES
-    // ============================================================
-
     const productTypes = parseProductTypes(req.body.types);
-
-    // ============================================================
-    // PRICE
-    // ============================================================
+    const variants = parseVariants(req.body.variants);
 
     let parsedPrice = null;
 
     if (finalPricingType === "standard") {
-      if (price === undefined || price === "") {
+      if ((price === undefined || price === "") && variants.length === 0) {
         return res.status(400).json({
           message: "Price is required for standard products.",
         });
       }
 
-      parsedPrice = parseNumber(price);
+      if (price !== undefined && price !== "") {
+        parsedPrice = parseNumber(price);
 
-      if (parsedPrice === null || parsedPrice < 0) {
-        return res.status(400).json({
-          message: "Price must be a valid number.",
-        });
+        if (parsedPrice === null || parsedPrice < 0) {
+          return res.status(400).json({
+            message: "Price must be a valid number.",
+          });
+        }
+      } else if (variants.length > 0) {
+        parsedPrice = variants[0].price;
       }
     }
-
-    // ============================================================
-    // MRP
-    // ============================================================
 
     let parsedMrp = null;
 
@@ -359,23 +377,16 @@ export async function createProduct(req, res, next) {
         });
       }
 
-      // Only compare product-level MRP for standard products
-      if (finalPricingType === "standard" && parsedMrp < parsedPrice) {
+      if (
+        finalPricingType === "standard" &&
+        parsedPrice !== null &&
+        parsedMrp < parsedPrice
+      ) {
         return res.status(400).json({
           message: "MRP cannot be lower than selling price.",
         });
       }
     }
-
-    // ============================================================
-    // VARIANTS
-    // ============================================================
-
-    const variants = parseVariants(req.body.variants);
-
-    // ============================================================
-    // VALIDATE TYPE-BASED PRODUCT
-    // ============================================================
 
     if (finalPricingType === "type-based") {
       if (!Array.isArray(productTypes) || productTypes.length === 0) {
@@ -393,15 +404,11 @@ export async function createProduct(req, res, next) {
 
         if (!Array.isArray(type.sizes) || type.sizes.length === 0) {
           return res.status(400).json({
-            message: `At least one size is required for ${type.name}.`,
+            message: `At least one price option is required for ${type.name}.`,
           });
         }
       }
     }
-
-    // ============================================================
-    // IMAGE
-    // ============================================================
 
     let imageUrl = "";
     let imagePublicId = "";
@@ -415,39 +422,20 @@ export async function createProduct(req, res, next) {
       imagePublicId = uploaded.publicId;
     }
 
-    // ============================================================
-    // CREATE PRODUCT
-    // ============================================================
-
     const product = await Product.create({
       name: name.trim(),
-
-      // Important:
-      // Type-based products don't have a product-level price.
       price: parsedPrice ?? 0,
-
-      // Product-level MRP is only meaningful for standard products
       mrp: finalPricingType === "standard" ? parsedMrp : null,
-
       variants: finalPricingType === "standard" ? variants : [],
-
       pricingType: finalPricingType,
-
       types: finalPricingType === "type-based" ? productTypes : [],
-
       category,
-
       description: description || "",
-
       barcode: barcode || "",
-
       active:
         active === undefined ? true : active === "true" || active === true,
-
       imageUrl,
-
-      featured: featured === "true",
-
+      featured: featured === "true" || featured === true,
       imagePublicId,
     });
 
@@ -485,17 +473,20 @@ export async function updateProduct(req, res, next) {
       pricingType,
     } = req.body;
 
-    /* NAME */
+    const nextPricingType =
+      pricingType !== undefined
+        ? pricingType === "type-based"
+          ? "type-based"
+          : "standard"
+        : product.pricingType;
 
     if (name !== undefined) {
       product.name = name.trim();
     }
 
-    /* PRICE */
-
     let newPrice = Number(product.price);
 
-    if (price !== undefined) {
+    if (price !== undefined && price !== "") {
       const parsedPrice = parseNumber(price);
 
       if (parsedPrice === null || parsedPrice < 0) {
@@ -506,9 +497,10 @@ export async function updateProduct(req, res, next) {
 
       newPrice = parsedPrice;
       product.price = parsedPrice;
+    } else if (nextPricingType === "type-based") {
+      newPrice = 0;
+      product.price = 0;
     }
-
-    /* MRP */
 
     let newMrp = product.mrp;
 
@@ -521,14 +513,18 @@ export async function updateProduct(req, res, next) {
         });
       }
 
-      if (newMrp !== null && newMrp < newPrice) {
+      if (
+        nextPricingType === "standard" &&
+        newMrp !== null &&
+        newMrp < newPrice
+      ) {
         return res.status(400).json({
           message: "MRP cannot be lower than selling price.",
         });
       }
 
-      product.mrp = newMrp;
-    } else {
+      product.mrp = nextPricingType === "standard" ? newMrp : null;
+    } else if (nextPricingType === "standard") {
       if (newMrp !== null && newMrp !== undefined && newMrp < newPrice) {
         return res.status(400).json({
           message:
@@ -536,8 +532,6 @@ export async function updateProduct(req, res, next) {
         });
       }
     }
-
-    /* OTHER FIELDS */
 
     if (category !== undefined) {
       product.category = category;
@@ -559,8 +553,6 @@ export async function updateProduct(req, res, next) {
       product.featured = featured === "true" || featured === true;
     }
 
-    /* VARIANTS */
-
     if (req.body.variants !== undefined) {
       product.variants = parseVariants(req.body.variants);
     }
@@ -570,11 +562,8 @@ export async function updateProduct(req, res, next) {
     }
 
     if (pricingType !== undefined) {
-      product.pricingType =
-        pricingType === "type-based" ? "type-based" : "standard";
+      product.pricingType = nextPricingType;
     }
-
-    /* IMAGE */
 
     if (req.file) {
       const oldPublicId = product.imagePublicId;
@@ -631,27 +620,14 @@ export async function deleteProduct(req, res, next) {
    HOMEPAGE PRODUCTS
 ========================================================= */
 
-/* =========================================================
-   HOMEPAGE PRODUCTS
-========================================================= */
-
 export async function getHomepageProducts(req, res, next) {
   try {
     const result = await Product.aggregate([
-      /* =====================================================
-         ACTIVE PRODUCTS
-      ===================================================== */
-
       {
         $match: {
           active: true,
         },
       },
-
-      /* =====================================================
-         CATEGORY
-      ===================================================== */
-
       {
         $lookup: {
           from: "categories",
@@ -660,15 +636,9 @@ export async function getHomepageProducts(req, res, next) {
           as: "categoryData",
         },
       },
-
       {
         $unwind: "$categoryData",
       },
-
-      /* =====================================================
-         ACTIVE CATEGORIES
-      ===================================================== */
-
       {
         $match: {
           "categoryData.active": true,
@@ -677,31 +647,23 @@ export async function getHomepageProducts(req, res, next) {
           },
         },
       },
-
-      /* =====================================================
-         NEWEST FIRST
-      ===================================================== */
-
       {
         $sort: {
           createdAt: -1,
         },
       },
-
       {
         $facet: {
           featured: [
-            {$match: {featured: true}},
+            { $match: { featured: true } },
             {
               $limit: 6,
             },
           ],
-
           departments: [
             {
               $group: {
                 _id: "$categoryData.department",
-
                 products: {
                   $push: {
                     _id: "$_id",
@@ -717,7 +679,6 @@ export async function getHomepageProducts(req, res, next) {
                     imagePublicId: "$imagePublicId",
                     active: "$active",
                     createdAt: "$createdAt",
-
                     category: {
                       _id: "$categoryData._id",
                       name: "$categoryData.name",
@@ -728,7 +689,6 @@ export async function getHomepageProducts(req, res, next) {
                 },
               },
             },
-
             {
               $project: {
                 _id: 1,
@@ -742,47 +702,17 @@ export async function getHomepageProducts(req, res, next) {
       },
     ]);
 
-    /* =========================================================
-       RESULT
-    ========================================================= */
-
     const aggregationResult = result[0] || {};
-
     const featured = aggregationResult.featured || [];
-
     const departmentProducts = {};
-
-    /*
-      Initialize ALL departments.
-
-      This means the frontend always receives:
-
-      {
-        "grocery-kitchen": [],
-        "snacks-drinks": [],
-        "beauty-personal-care": [],
-        "household-essentials": [],
-        "stationery": []
-      }
-
-      even when a department has no products.
-    */
 
     for (const department of DEPARTMENTS) {
       departmentProducts[department] = [];
     }
 
-    /*
-      Put the products into their correct department.
-    */
-
     for (const department of aggregationResult.departments || []) {
       departmentProducts[department._id] = department.products || [];
     }
-
-    /* =========================================================
-       RESPONSE
-    ========================================================= */
 
     res.json({
       featured,

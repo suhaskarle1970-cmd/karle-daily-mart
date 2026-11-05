@@ -4,14 +4,14 @@ const sizePriceSchema = new mongoose.Schema(
   {
     unit: {
       type: String,
-      required: true,
-      enum: ["g", "kg", "ml", "l", "pcs"],
+      required: false,
+      enum: ["g", "kg", "ml", "l", "pcs", ""],
+      default: "",
     },
 
     amount: {
       type: Number,
-      required: true,
-      min: 0,
+      default: null,
     },
 
     // Actual selling price for this particular size
@@ -53,14 +53,16 @@ const variantSchema = new mongoose.Schema(
   {
     unit: {
       type: String,
-      required: true,
-      enum: ["g", "kg", "ml", "l", "pcs"],
+      required: false,
+      enum: ["g", "kg", "ml", "l", "pcs",""],
+      default: "",
     },
 
     amount: {
       type: Number,
-      required: true,
+      required: false,
       min: 0,
+      default: null,
     },
 
     // Actual selling price
