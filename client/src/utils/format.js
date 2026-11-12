@@ -12,6 +12,11 @@ export function buildWhatsAppMessage({
   deliveryCharge,
   total,
 }) {
+  const totalItemsCount = Array.isArray(items) ? items.length : 0;
+  const totalUnitsCount = Array.isArray(items)
+    ? items.reduce((sum, item) => sum + (Number(item.quantity) || 1), 0)
+    : 0;
+
   const lines = [
     `Hello Daily Mart Super Market,`,
     "",
@@ -41,6 +46,9 @@ export function buildWhatsAppMessage({
   });
 
   lines.push("----------------------------");
+  lines.push(
+    `Total No. of Items: ${totalItemsCount} (Total Qty: ${totalUnitsCount})`,
+  );
   lines.push(`Subtotal: ${formatCurrency(subtotal)}`);
   lines.push(`Delivery Charges: ${formatCurrency(deliveryCharge)}`);
   lines.push(`Total: ${formatCurrency(total)}`);

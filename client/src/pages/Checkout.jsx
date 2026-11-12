@@ -96,41 +96,47 @@ export default function Checkout() {
 
   const totalSavingAmount = Math.max(0, totalMrpAmount - subtotal);
 
- const deliverySettings = config.delivery || {};
+  const deliverySettings = config.delivery || {};
 
- const deliveryEnabled = deliverySettings.enabled ?? true;
+  const deliveryEnabled = deliverySettings.enabled ?? true;
 
- const minimumOrderAmount = Number(deliverySettings.minimumOrderAmount ?? 500);
+  const minimumOrderAmount = Number(deliverySettings.minimumOrderAmount ?? 500);
 
- const firstDeliveryBandAmount = Number(
-   deliverySettings.firstDeliveryBandAmount ?? 750,
- );
+  const totalItemsCount = items.length;
+  const totalUnitsCount = items.reduce(
+    (sum, item) => sum + (Number(item.quantity) || 1),
+    0,
+  );
 
- const chargePerAmount = Number(deliverySettings.chargePerAmount ?? 500);
+  const firstDeliveryBandAmount = Number(
+    deliverySettings.firstDeliveryBandAmount ?? 750,
+  );
 
- const chargePerAmountValue = Number(
-   deliverySettings.chargePerAmountValue ?? 20,
- );
+  const chargePerAmount = Number(deliverySettings.chargePerAmount ?? 500);
 
- let deliveryCharge = 0;
+  const chargePerAmountValue = Number(
+    deliverySettings.chargePerAmountValue ?? 20,
+  );
 
- if (deliveryEnabled) {
-   // First band
-   if (subtotal <= firstDeliveryBandAmount) {
-     deliveryCharge = chargePerAmountValue;
-   }
+  let deliveryCharge = 0;
 
-   // Subsequent bands
-   else {
-     const additionalBands = Math.ceil(
-       (subtotal - firstDeliveryBandAmount) / chargePerAmount,
-     );
+  if (deliveryEnabled) {
+    // First band
+    if (subtotal <= firstDeliveryBandAmount) {
+      deliveryCharge = chargePerAmountValue;
+    }
 
-     deliveryCharge = (additionalBands + 1) * chargePerAmountValue;
-   }
- }
+    // Subsequent bands
+    else {
+      const additionalBands = Math.ceil(
+        (subtotal - firstDeliveryBandAmount) / chargePerAmount,
+      );
 
-const finalTotal = subtotal + deliveryCharge;
+      deliveryCharge = (additionalBands + 1) * chargePerAmountValue;
+    }
+  }
+
+  const finalTotal = subtotal + deliveryCharge;
 
   /* =========================================================
      FORM VALIDATION
@@ -346,6 +352,17 @@ const finalTotal = subtotal + deliveryCharge;
             ))}
           </div>
 
+          {/* TOTAL ITEMS */}
+
+          <div className="checkout-summary-row">
+            <span>Total No. of Items</span>
+
+            <span>
+              {totalItemsCount} {totalItemsCount === 1 ? "Item" : "Items"} (Qty:{" "}
+              {totalUnitsCount})
+            </span>
+          </div>
+
           {/* MRP TOTAL */}
 
           <div className="checkout-summary-row">
@@ -360,7 +377,9 @@ const finalTotal = subtotal + deliveryCharge;
             <div className="checkout-summary-row checkout-discount-row">
               <span>Discount</span>
 
-              <span style={{color:"red"}}>-{formatCurrency(totalSavingAmount)}</span>
+              <span style={{ color: "red" }}>
+                -{formatCurrency(totalSavingAmount)}
+              </span>
             </div>
           )}
 
@@ -388,10 +407,12 @@ const finalTotal = subtotal + deliveryCharge;
             <div className="checkout-saving">
               <span>You save</span>
 
-              <strong style={{color:"green"}}>{formatCurrency(totalSavingAmount)}</strong>
+              <strong style={{ color: "green" }}>
+                {formatCurrency(totalSavingAmount)}
+              </strong>
             </div>
           )}
-<hr />  
+          <hr />
           {/* FINAL TOTAL */}
 
           <div className="checkout-summary-total">
