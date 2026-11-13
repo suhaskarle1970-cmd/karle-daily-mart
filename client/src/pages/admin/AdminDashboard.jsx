@@ -3,6 +3,51 @@ import api from "../../services/api";
 import { formatCurrency } from "../../utils/format";
 import "./admin.css";
 
+function getProductDisplayPrice(product) {
+  if (!product) return formatCurrency(0);
+
+  // 1. If it's a type-based product (or has types with sizes), get price(s) from types
+  if (
+    product.pricingType === "type-based" ||
+    (Array.isArray(product.types) && product.types.length > 0)
+  ) {
+    const typePrices = (product.types || [])
+      .flatMap((t) => (Array.isArray(t.sizes) ? t.sizes : []))
+      .map((s) => Number(s.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
+
+    if (typePrices.length > 0) {
+      const min = Math.min(...typePrices);
+      const max = Math.max(...typePrices);
+      return min === max
+        ? formatCurrency(min)
+        : `${formatCurrency(min)} – ${formatCurrency(max)}`;
+    }
+  }
+
+  // 2. If standard product has variants and top-level price is 0, get price(s) from variants
+  if (
+    !(Number(product.price) > 0) &&
+    Array.isArray(product.variants) &&
+    product.variants.length > 0
+  ) {
+    const variantPrices = product.variants
+      .map((v) => Number(v.price))
+      .filter((price) => Number.isFinite(price) && price > 0);
+
+    if (variantPrices.length > 0) {
+      const min = Math.min(...variantPrices);
+      const max = Math.max(...variantPrices);
+      return min === max
+        ? formatCurrency(min)
+        : `${formatCurrency(min)} – ${formatCurrency(max)}`;
+    }
+  }
+
+  // 3. Fallback to standard top-level price
+  return formatCurrency(product.price || 0);
+}
+
 export default function AdminDashboard() {
   const [stats, setStats] = useState(null);
   const [status, setStatus] = useState("loading");
@@ -78,7 +123,7 @@ export default function AdminDashboard() {
 
                       <td>{p.category?.name || "—"}</td>
 
-                      <td>{formatCurrency(p.price)}</td>
+                      <td>{getProductDisplayPrice(p)}</td>
                     </tr>
                   ))}
 

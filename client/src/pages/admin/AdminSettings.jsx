@@ -33,14 +33,37 @@ function formatAmount(value) {
   return Number(value || 0).toLocaleString("en-IN");
 }
 
+const quickChipBarStyle = {
+  display: "flex",
+  flexWrap: "wrap",
+  gap: "6px",
+  marginTop: "6px",
+};
+
+const quickChipStyle = {
+  padding: "4px 10px",
+  fontSize: "12px",
+  fontWeight: 500,
+  borderRadius: "6px",
+  border: "1px solid #d1d5db",
+  background: "#f9fafb",
+  color: "#374151",
+  cursor: "pointer",
+};
+
+const quickChipActiveStyle = {
+  ...quickChipStyle,
+  background: "#eff6ff",
+  borderColor: "#3b82f6",
+  color: "#1d4ed8",
+  fontWeight: 600,
+};
+
 export default function AdminSettings() {
-  const [settings, setSettings] = useState({
-    enabled: true,
-    minimumOrderAmount: 500,
-    firstDeliveryBandAmount: 750,
-    chargePerAmount: 500,
-    chargePerAmountValue: 20,
-  });
+  const [settings, setSettings] = useState(DEFAULT_SETTINGS);
+  const [savedSettings, setSavedSettings] = useState(DEFAULT_SETTINGS);
+
+  const [testOrderAmount, setTestOrderAmount] = useState(850);
 
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -66,15 +89,16 @@ export default function AdminSettings() {
           return;
         }
 
-        setSettings(normalizeSettings(data?.delivery));
+        const loaded = normalizeSettings(data?.delivery);
+        setSettings(loaded);
+        setSavedSettings(loaded);
       } catch (err) {
         if (!mounted) {
           return;
         }
 
         setError(
-          err.response?.data?.message ||
-            "Failed to load delivery settings.",
+          err.response?.data?.message || "Failed to load delivery settings.",
         );
       } finally {
         if (mounted) {
@@ -91,7 +115,7 @@ export default function AdminSettings() {
   }, []);
 
   /* =========================================================
-     CHANGE HANDLER
+     CHANGE HANDLERS
   ========================================================= */
 
   function handleChange(e) {
@@ -102,54 +126,84 @@ export default function AdminSettings() {
 
     setSettings((prev) => ({
       ...prev,
-      [name]:
-        type === "checkbox"
-          ? checked
-          : value === ""
-            ? ""
-            : Number(value),
+      [name]: type === "checkbox" ? checked : value === "" ? "" : Number(value),
     }));
   }
 
+  function setFieldValue(field, numValue) {
+    if (saving) return;
+    setMessage("");
+    setError("");
+
+    setSettings((prev) => {
+      const next = {
+        ...prev,
+        [field]: Math.max(0, Number(numValue) || 0),
+      };
+
+      // If minimumOrderAmount is raised above firstDeliveryBandAmount,
+      // automatically bump firstDeliveryBandAmount so the client never hits an error
+      if (
+        field === "minimumOrderAmount" &&
+        Number(next.firstDeliveryBandAmount) < Number(next.minimumOrderAmount)
+      ) {
+        next.firstDeliveryBandAmount = Number(next.minimumOrderAmount);
+      }
+
+      return next;
+    });
+  }
+
+  function handleResetToSaved() {
+    setSettings(savedSettings);
+    setError("");
+    setMessage("Changes reverted to last saved settings.");
+  }
+
+  function handleRestoreDefaults() {
+    setSettings(DEFAULT_SETTINGS);
+    setError("");
+    setMessage(
+      "Default values loaded into form. Click 'Save Delivery Settings' to apply.",
+    );
+  }
+
   /* =========================================================
-     VALIDATION
+     VALIDATION (Same core conditions + empty-input protection)
   ========================================================= */
 
   function validateSettings() {
-   const minimumOrderAmount = Number(settings.minimumOrderAmount);
-
-   const firstDeliveryBandAmount = Number(settings.firstDeliveryBandAmount);
-
-   const chargePerAmount = Number(settings.chargePerAmount);
-
-   const chargePerAmountValue = Number(settings.chargePerAmountValue);
-
     if (
-      !Number.isFinite(minimumOrderAmount) ||
-      minimumOrderAmount < 0
+      settings.minimumOrderAmount === "" ||
+      settings.firstDeliveryBandAmount === "" ||
+      settings.chargePerAmount === "" ||
+      settings.chargePerAmountValue === ""
     ) {
-      return "Minimum order amount must be a valid number.";
+      return "Please fill in all delivery amount fields before saving.";
+    }
+
+    const minimumOrderAmount = Number(settings.minimumOrderAmount);
+    const firstDeliveryBandAmount = Number(settings.firstDeliveryBandAmount);
+    const chargePerAmount = Number(settings.chargePerAmount);
+    const chargePerAmountValue = Number(settings.chargePerAmountValue);
+
+    if (!Number.isFinite(minimumOrderAmount) || minimumOrderAmount < 0) {
+      return "Minimum order amount must be ₹0 or more.";
     }
 
     if (
       !Number.isFinite(firstDeliveryBandAmount) ||
       firstDeliveryBandAmount < minimumOrderAmount
     ) {
-      return "First delivery band must be greater than or equal to the minimum order amount.";
+      return `First slab maximum (₹${formatAmount(firstDeliveryBandAmount)}) cannot be less than the minimum order amount (₹${formatAmount(minimumOrderAmount)}).`;
     }
 
-    if (
-      !Number.isFinite(chargePerAmount) ||
-      chargePerAmount <= 0
-    ) {
-      return "Charge applies per amount must be greater than ₹0.";
+    if (!Number.isFinite(chargePerAmount) || chargePerAmount <= 0) {
+      return "Next slab range step must be greater than ₹0.";
     }
 
-    if (
-      !Number.isFinite(chargePerAmountValue) ||
-      chargePerAmountValue < 0
-    ) {
-      return "Delivery charge must be a valid number.";
+    if (!Number.isFinite(chargePerAmountValue) || chargePerAmountValue < 0) {
+      return "Delivery charge must be ₹0 or more.";
     }
 
     return null;
@@ -176,13 +230,9 @@ export default function AdminSettings() {
 
     const payload = {
       enabled: Boolean(settings.enabled),
-
       minimumOrderAmount: Number(settings.minimumOrderAmount),
-
       firstDeliveryBandAmount: Number(settings.firstDeliveryBandAmount),
-
       chargePerAmount: Number(settings.chargePerAmount),
-
       chargePerAmountValue: Number(settings.chargePerAmountValue),
     };
 
@@ -191,17 +241,16 @@ export default function AdminSettings() {
         delivery: payload,
       });
 
-      if (data?.delivery) {
-        setSettings(normalizeSettings(data.delivery));
-      } else {
-        setSettings(payload);
-      }
+      const updated = data?.delivery
+        ? normalizeSettings(data.delivery)
+        : payload;
 
-      setMessage("Delivery settings saved successfully.");
+      setSettings(updated);
+      setSavedSettings(updated);
+      setMessage("Delivery settings saved and updated on store.");
     } catch (err) {
       setError(
-        err.response?.data?.message ||
-          "Failed to save delivery settings.",
+        err.response?.data?.message || "Failed to save delivery settings.",
       );
     } finally {
       setSaving(false);
@@ -209,20 +258,13 @@ export default function AdminSettings() {
   }
 
   /* =========================================================
-     CALCULATED EXAMPLES
+     SLAB & EXAMPLE CALCULATIONS
   ========================================================= */
 
   const minimumOrder = Number(settings.minimumOrderAmount) || 0;
-
   const firstDeliveryBand = Number(settings.firstDeliveryBandAmount) || 0;
-
-  const chargeStep = Number(settings.chargePerAmount) || 1;
-
+  const chargeStep = Math.max(1, Number(settings.chargePerAmount) || 1);
   const chargeValue = Number(settings.chargePerAmountValue) || 0;
-
-  const example1 = minimumOrder;
-  const example2 = firstDeliveryBand;
-  const example3 = firstDeliveryBand + chargeStep;
 
   function calculateDelivery(orderAmount) {
     if (!settings.enabled) {
@@ -240,6 +282,30 @@ export default function AdminSettings() {
     return (additionalBands + 1) * chargeValue;
   }
 
+  // Generate 5 clear range slabs so the owner can see the exact order brackets
+  const slabRanges = [
+    {
+      slabNumber: 1,
+      label: `₹${formatAmount(minimumOrder)} to ₹${formatAmount(firstDeliveryBand)}`,
+      note: "Base 1st Slab",
+      charge: calculateDelivery(firstDeliveryBand),
+    },
+    ...[1, 2, 3, 4].map((extraBand) => {
+      const fromAmount = firstDeliveryBand + (extraBand - 1) * chargeStep + 1;
+      const toAmount = firstDeliveryBand + extraBand * chargeStep;
+      return {
+        slabNumber: extraBand + 1,
+        label: `₹${formatAmount(fromAmount)} to ₹${formatAmount(toAmount)}`,
+        note: `+${extraBand} Slab (${extraBand + 1} × ₹${formatAmount(chargeValue)})`,
+        charge: calculateDelivery(toAmount),
+      };
+    }),
+  ];
+
+  const numericTestOrder = Number(testOrderAmount) || 0;
+  const testDeliveryFee = calculateDelivery(numericTestOrder);
+  const testGrandTotal = numericTestOrder + testDeliveryFee;
+
   /* =========================================================
      LOADING
   ========================================================= */
@@ -250,9 +316,7 @@ export default function AdminSettings() {
         <div className="admin-settings-header">
           <div>
             <h1>Store Settings</h1>
-            <p>
-              Manage your store and home delivery settings.
-            </p>
+            <p>Manage your store and home delivery charges.</p>
           </div>
         </div>
 
@@ -269,34 +333,44 @@ export default function AdminSettings() {
 
   return (
     <div className="admin-settings-page">
-      {/* =====================================================
-          HEADER
-      ===================================================== */}
-
       <div className="admin-settings-header">
         <div>
           <h1>Store Settings</h1>
-
-          <p>Manage your store and home delivery settings.</p>
+          <p>
+            Easily set your minimum order, bill range slabs, and delivery
+            charges.
+          </p>
         </div>
       </div>
 
-      {/* =====================================================
-          SETTINGS FORM
-      ===================================================== */}
-
       <form className="settings-card" onSubmit={handleSave} noValidate>
         {/* ===================================================
-            DELIVERY HEADER
+            1. ENABLE / DISABLE TOGGLE
         =================================================== */}
 
         <div className="settings-card-header">
           <div>
-            <h2>Home Delivery</h2>
+            <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
+              <h2 style={{ margin: 0 }}>Home Delivery Charges</h2>
+              <span
+                style={{
+                  padding: "3px 10px",
+                  borderRadius: "999px",
+                  fontSize: "12px",
+                  fontWeight: 600,
+                  background: settings.enabled ? "#dcfce7" : "#fee2e2",
+                  color: settings.enabled ? "#15803d" : "#b91c1c",
+                }}
+              >
+                {settings.enabled
+                  ? "ACTIVE (Charges Applied)"
+                  : "OFF (₹0 Free Delivery)"}
+              </span>
+            </div>
 
-            <p>
-              Control when delivery is available and how delivery charges are
-              calculated.
+            <p style={{ marginTop: "6px" }}>
+              Turn this switch ON to apply slab-based delivery fees at checkout,
+              or turn it OFF to make delivery ₹0 for all orders.
             </p>
           </div>
 
@@ -304,8 +378,8 @@ export default function AdminSettings() {
             className="settings-switch"
             title={
               settings.enabled
-                ? "Home delivery enabled"
-                : "Home delivery disabled"
+                ? "Home delivery charges enabled"
+                : "Home delivery charges disabled"
             }
           >
             <input
@@ -315,7 +389,6 @@ export default function AdminSettings() {
               onChange={handleChange}
               aria-label="Enable home delivery"
             />
-
             <span aria-hidden="true" />
           </label>
         </div>
@@ -323,18 +396,51 @@ export default function AdminSettings() {
         <div className="settings-divider" />
 
         {/* ===================================================
-            SETTINGS
+            PLAIN-LANGUAGE RULE SUMMARY BANNER
+        =================================================== */}
+
+        <div
+          style={{
+            background: "#f8fafc",
+            border: "1px solid #e2e8f0",
+            borderRadius: "10px",
+            padding: "12px 16px",
+            marginBottom: "20px",
+            fontSize: "14px",
+            lineHeight: "1.6",
+            color: "#1e293b",
+          }}
+        >
+          <strong>Current Rule in Plain Words: </strong>
+          {settings.enabled ? (
+            <>
+              Orders from <strong>₹{formatAmount(minimumOrder)}</strong> up to{" "}
+              <strong>₹{formatAmount(firstDeliveryBand)}</strong> will be
+              charged <strong>₹{formatAmount(chargeValue)}</strong> for
+              delivery. Above{" "}
+              <strong>₹{formatAmount(firstDeliveryBand)}</strong>, every
+              additional <strong>₹{formatAmount(chargeStep)}</strong> of bill
+              amount adds another <strong>₹{formatAmount(chargeValue)}</strong>.
+            </>
+          ) : (
+            <span>
+              Delivery charges are currently turned <strong>OFF</strong>. No
+              delivery fee (₹0) will be added to customer bills.
+            </span>
+          )}
+        </div>
+
+        {/* ===================================================
+            2. FOUR SIMPLE CONTROLS WITH QUICK PRESETS
         =================================================== */}
 
         <div className="settings-grid">
-          {/* MINIMUM ORDER */}
-
+          {/* STEP 1: MINIMUM ORDER */}
           <label className="setting-field">
-            <span>Minimum order amount</span>
+            <span>1. Minimum Order Amount (किमान ऑर्डर)</span>
 
             <div className="input-with-symbol">
               <span aria-hidden="true">₹</span>
-
               <input
                 type="number"
                 name="minimumOrderAmount"
@@ -347,38 +453,77 @@ export default function AdminSettings() {
               />
             </div>
 
+            <div style={quickChipBarStyle}>
+              {[0, 300, 500, 750, 1000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  style={
+                    Number(settings.minimumOrderAmount) === val
+                      ? quickChipActiveStyle
+                      : quickChipStyle
+                  }
+                  onClick={() => setFieldValue("minimumOrderAmount", val)}
+                >
+                  ₹{val}
+                </button>
+              ))}
+            </div>
+
             <small>
-              Customers must reach this amount to use home delivery.
+              Starting order amount required for home delivery (e.g. ₹500).
             </small>
           </label>
 
-          <div className="form-group">
-            <label htmlFor="firstDeliveryBandAmount">
-              First delivery band up to
-            </label>
-
-            <input
-              id="firstDeliveryBandAmount"
-              name="firstDeliveryBandAmount"
-              type="number"
-              min="0"
-              value={settings.firstDeliveryBandAmount}
-              onChange={handleChange}
-            />
-
-            <small>
-              Orders up to this amount use the first delivery charge.
-            </small>
-          </div>
-
-          {/* CHARGE STEP */}
-
+          {/* STEP 2: FIRST SLAB UP TO */}
           <label className="setting-field">
-            <span>Charge applies per amount</span>
+            <span>2. First Slab Maximum Limit (पहिला टप्पा मर्यादा)</span>
 
             <div className="input-with-symbol">
               <span aria-hidden="true">₹</span>
+              <input
+                id="firstDeliveryBandAmount"
+                type="number"
+                name="firstDeliveryBandAmount"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={settings.firstDeliveryBandAmount}
+                onChange={handleChange}
+                disabled={saving}
+              />
+            </div>
 
+            <div style={quickChipBarStyle}>
+              {[500, 750, 1000, 1500, 2000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  style={
+                    Number(settings.firstDeliveryBandAmount) === val
+                      ? quickChipActiveStyle
+                      : quickChipStyle
+                  }
+                  onClick={() => setFieldValue("firstDeliveryBandAmount", val)}
+                >
+                  Up to ₹{val}
+                </button>
+              ))}
+            </div>
+
+            <small>
+              Orders from ₹{formatAmount(minimumOrder)} up to ₹
+              {formatAmount(firstDeliveryBand)} pay the single base delivery
+              charge (₹{formatAmount(chargeValue)}).
+            </small>
+          </label>
+
+          {/* STEP 3: NEXT SLAB STEP */}
+          <label className="setting-field">
+            <span>3. Next Slab Range Step (पुढील प्रत्येक टप्पा)</span>
+
+            <div className="input-with-symbol">
+              <span aria-hidden="true">₹</span>
               <input
                 type="number"
                 name="chargePerAmount"
@@ -391,20 +536,35 @@ export default function AdminSettings() {
               />
             </div>
 
+            <div style={quickChipBarStyle}>
+              {[250, 500, 750, 1000].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  style={
+                    Number(settings.chargePerAmount) === val
+                      ? quickChipActiveStyle
+                      : quickChipStyle
+                  }
+                  onClick={() => setFieldValue("chargePerAmount", val)}
+                >
+                  Every +₹{val}
+                </button>
+              ))}
+            </div>
+
             <small>
-              Example: ₹500 means the charge is calculated for every ₹500 of
-              order value.
+              Above ₹{formatAmount(firstDeliveryBand)}, a new slab starts every
+              ₹{formatAmount(chargeStep)} added to the bill.
             </small>
           </label>
 
-          {/* DELIVERY CHARGE */}
-
+          {/* STEP 4: DELIVERY CHARGE VALUE */}
           <label className="setting-field">
-            <span>Delivery charge</span>
+            <span>4. Delivery Charge per Slab (डिलिव्हरी चार्ज)</span>
 
             <div className="input-with-symbol">
               <span aria-hidden="true">₹</span>
-
               <input
                 type="number"
                 name="chargePerAmountValue"
@@ -417,41 +577,116 @@ export default function AdminSettings() {
               />
             </div>
 
+            <div style={quickChipBarStyle}>
+              {[0, 10, 20, 30, 40, 50].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  style={
+                    Number(settings.chargePerAmountValue) === val
+                      ? quickChipActiveStyle
+                      : quickChipStyle
+                  }
+                  onClick={() => setFieldValue("chargePerAmountValue", val)}
+                >
+                  {val === 0 ? "₹0 (Free)" : `₹${val}`}
+                </button>
+              ))}
+            </div>
+
             <small>
-              Delivery charge for each ₹{formatAmount(chargeStep)} of order
-              value.
+              Base charge for Slab 1, and added for each next ₹
+              {formatAmount(chargeStep)} slab.
             </small>
           </label>
         </div>
 
         {/* ===================================================
-            EXAMPLE
+            3. LIVE SLAB RANGE PREVIEW TABLE
         =================================================== */}
 
-        <div className="delivery-example">
-          <strong>Example</strong>
-
-          <div className="example-row">
-            <span>₹{formatAmount(example1)} order</span>
-
-            <b>₹{formatAmount(calculateDelivery(example1))} delivery</b>
+        <div className="delivery-example" style={{ marginTop: "24px" }}>
+          <div
+            style={{
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              flexWrap: "wrap",
+              gap: "8px",
+              marginBottom: "10px",
+            }}
+          >
+            <strong>Live Order Range Slabs (Auto-Calculated Preview)</strong>
+            <span style={{ fontSize: "12px", color: "#6b7280" }}>
+              Updates automatically as you change numbers above
+            </span>
           </div>
 
-          <div className="example-row">
-            <span>₹{formatAmount(example2)} order</span>
+          {slabRanges.map((slab) => (
+            <div className="example-row" key={slab.slabNumber}>
+              <span>
+                <strong>Slab {slab.slabNumber}:</strong> {slab.label}{" "}
+                <small style={{ color: "#6b7280" }}>({slab.note})</small>
+              </span>
+              <b>₹{formatAmount(slab.charge)} delivery</b>
+            </div>
+          ))}
+        </div>
 
-            <b>₹{formatAmount(calculateDelivery(example2))} delivery</b>
-          </div>
+        {/* ===================================================
+            4. INTERACTIVE BILL TESTER FOR STORE OWNER
+        =================================================== */}
 
-          <div className="example-row">
-            <span>₹{formatAmount(example3)} order</span>
+        <div
+          className="delivery-example"
+          style={{
+            marginTop: "16px",
+            background: "#f0fdf4",
+            borderColor: "#bbf7d0",
+          }}
+        >
+          <strong>Test Any Customer Bill Amount</strong>
+          <div
+            style={{
+              display: "flex",
+              flexWrap: "wrap",
+              alignItems: "center",
+              justifyContent: "space-between",
+              gap: "12px",
+              marginTop: "10px",
+            }}
+          >
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>If customer order bill is ₹</span>
+              <input
+                type="number"
+                min="0"
+                step="50"
+                value={testOrderAmount}
+                onChange={(e) => setTestOrderAmount(e.target.value)}
+                style={{
+                  width: "110px",
+                  padding: "6px 10px",
+                  borderRadius: "6px",
+                  border: "1px solid #86efac",
+                  fontWeight: 600,
+                }}
+              />
+            </div>
 
-            <b>₹{formatAmount(calculateDelivery(example3))} delivery</b>
+            <div style={{ fontSize: "14px" }}>
+              Delivery Charge:{" "}
+              <strong style={{ color: "#15803d" }}>
+                ₹{formatAmount(testDeliveryFee)}
+              </strong>{" "}
+              | Final Bill to Pay:{" "}
+              <strong>₹{formatAmount(testGrandTotal)}</strong>
+            </div>
           </div>
         </div>
 
         {/* ===================================================
-            ERROR
+            ERROR & SUCCESS MESSAGES
         =================================================== */}
 
         {error && (
@@ -461,18 +696,19 @@ export default function AdminSettings() {
             style={{
               background: "#fef2f2",
               color: "#b91c1c",
+              marginTop: "16px",
             }}
           >
             {error}
           </div>
         )}
 
-        {/* ===================================================
-            SUCCESS
-        =================================================== */}
-
         {message && (
-          <div className="settings-message" role="status">
+          <div
+            className="settings-message"
+            role="status"
+            style={{ marginTop: "16px" }}
+          >
             {message}
           </div>
         )}
@@ -481,8 +717,59 @@ export default function AdminSettings() {
             ACTIONS
         =================================================== */}
 
-        <div className="settings-actions">
-          <button type="submit" className="btn btn-primary" disabled={saving}>
+        <div
+          className="settings-actions"
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            gap: "10px",
+            marginTop: "20px",
+          }}
+        >
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={handleResetToSaved}
+            disabled={saving}
+            style={{
+              flex: "1 1 140px",
+              minHeight: "44px",
+              padding: "10px 12px",
+              textAlign: "center",
+              justifyContent: "center",
+            }}
+          >
+            Undo
+          </button>
+
+          <button
+            type="button"
+            className="btn btn-outline"
+            onClick={handleRestoreDefaults}
+            disabled={saving}
+            style={{
+              flex: "1 1 140px",
+              minHeight: "44px",
+              padding: "10px 12px",
+              textAlign: "center",
+              justifyContent: "center",
+            }}
+          >
+            Restore Defaults
+          </button>
+
+          <button
+            type="submit"
+            className="btn btn-primary"
+            disabled={saving}
+            style={{
+              flex: "2 1 220px",
+              minHeight: "44px",
+              padding: "10px 16px",
+              textAlign: "center",
+              justifyContent: "center",
+            }}
+          >
             {saving ? "Saving..." : "Save Delivery Settings"}
           </button>
         </div>
