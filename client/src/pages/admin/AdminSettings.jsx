@@ -5,12 +5,16 @@ import "./AdminSettings.css";
 const DEFAULT_SETTINGS = {
   enabled: true,
   minimumOrderAmount: 500,
-  firstDeliveryBandAmount: 750,
+  firstDeliveryBandAmount: 500,
+  firstDeliveryCharge: 20,
   chargePerAmount: 500,
   chargePerAmountValue: 20,
 };
 
 function normalizeSettings(delivery = {}) {
+  const stepCharge =
+    delivery.chargePerAmountValue ?? DEFAULT_SETTINGS.chargePerAmountValue;
+
   return {
     enabled: delivery.enabled ?? DEFAULT_SETTINGS.enabled,
 
@@ -21,11 +25,12 @@ function normalizeSettings(delivery = {}) {
       delivery.firstDeliveryBandAmount ??
       DEFAULT_SETTINGS.firstDeliveryBandAmount,
 
+    firstDeliveryCharge: delivery.firstDeliveryCharge ?? stepCharge,
+
     chargePerAmount:
       delivery.chargePerAmount ?? DEFAULT_SETTINGS.chargePerAmount,
 
-    chargePerAmountValue:
-      delivery.chargePerAmountValue ?? DEFAULT_SETTINGS.chargePerAmountValue,
+    chargePerAmountValue: stepCharge,
   };
 }
 
@@ -141,8 +146,6 @@ export default function AdminSettings() {
         [field]: Math.max(0, Number(numValue) || 0),
       };
 
-      // If minimumOrderAmount is raised above firstDeliveryBandAmount,
-      // automatically bump firstDeliveryBandAmount so the client never hits an error
       if (
         field === "minimumOrderAmount" &&
         Number(next.firstDeliveryBandAmount) < Number(next.minimumOrderAmount)
@@ -169,13 +172,14 @@ export default function AdminSettings() {
   }
 
   /* =========================================================
-     VALIDATION (Same core conditions + empty-input protection)
+     VALIDATION
   ========================================================= */
 
   function validateSettings() {
     if (
       settings.minimumOrderAmount === "" ||
       settings.firstDeliveryBandAmount === "" ||
+      settings.firstDeliveryCharge === "" ||
       settings.chargePerAmount === "" ||
       settings.chargePerAmountValue === ""
     ) {
@@ -184,6 +188,7 @@ export default function AdminSettings() {
 
     const minimumOrderAmount = Number(settings.minimumOrderAmount);
     const firstDeliveryBandAmount = Number(settings.firstDeliveryBandAmount);
+    const firstDeliveryCharge = Number(settings.firstDeliveryCharge);
     const chargePerAmount = Number(settings.chargePerAmount);
     const chargePerAmountValue = Number(settings.chargePerAmountValue);
 
@@ -198,12 +203,16 @@ export default function AdminSettings() {
       return `First slab maximum (₹${formatAmount(firstDeliveryBandAmount)}) cannot be less than the minimum order amount (₹${formatAmount(minimumOrderAmount)}).`;
     }
 
+    if (!Number.isFinite(firstDeliveryCharge) || firstDeliveryCharge < 0) {
+      return "First range delivery charge must be ₹0 or more.";
+    }
+
     if (!Number.isFinite(chargePerAmount) || chargePerAmount <= 0) {
-      return "Next slab range step must be greater than ₹0.";
+      return "Purchase step amount must be greater than ₹0.";
     }
 
     if (!Number.isFinite(chargePerAmountValue) || chargePerAmountValue < 0) {
-      return "Delivery charge must be ₹0 or more.";
+      return "Delivery charge per step must be ₹0 or more.";
     }
 
     return null;
@@ -232,6 +241,7 @@ export default function AdminSettings() {
       enabled: Boolean(settings.enabled),
       minimumOrderAmount: Number(settings.minimumOrderAmount),
       firstDeliveryBandAmount: Number(settings.firstDeliveryBandAmount),
+      firstDeliveryCharge: Number(settings.firstDeliveryCharge),
       chargePerAmount: Number(settings.chargePerAmount),
       chargePerAmountValue: Number(settings.chargePerAmountValue),
     };
@@ -263,6 +273,7 @@ export default function AdminSettings() {
 
   const minimumOrder = Number(settings.minimumOrderAmount) || 0;
   const firstDeliveryBand = Number(settings.firstDeliveryBandAmount) || 0;
+  const firstCharge = Number(settings.firstDeliveryCharge) || 0;
   const chargeStep = Math.max(1, Number(settings.chargePerAmount) || 1);
   const chargeValue = Number(settings.chargePerAmountValue) || 0;
 
@@ -272,21 +283,25 @@ export default function AdminSettings() {
     }
 
     if (orderAmount <= firstDeliveryBand) {
-      return chargeValue;
+      return firstCharge;
     }
 
     const additionalBands = Math.ceil(
       (orderAmount - firstDeliveryBand) / chargeStep,
     );
 
-    return (additionalBands + 1) * chargeValue;
+    return firstCharge + additionalBands * chargeValue;
   }
 
-  // Generate 5 clear range slabs so the owner can see the exact order brackets
+  const firstSlabLabel =
+    minimumOrder === firstDeliveryBand
+      ? `Orders up to ₹${formatAmount(firstDeliveryBand)}`
+      : `₹${formatAmount(minimumOrder)} to ₹${formatAmount(firstDeliveryBand)}`;
+
   const slabRanges = [
     {
       slabNumber: 1,
-      label: `₹${formatAmount(minimumOrder)} to ₹${formatAmount(firstDeliveryBand)}`,
+      label: firstSlabLabel,
       note: "Base 1st Slab",
       charge: calculateDelivery(firstDeliveryBand),
     },
@@ -296,7 +311,7 @@ export default function AdminSettings() {
       return {
         slabNumber: extraBand + 1,
         label: `₹${formatAmount(fromAmount)} to ₹${formatAmount(toAmount)}`,
-        note: `+${extraBand} Slab (${extraBand + 1} × ₹${formatAmount(chargeValue)})`,
+        note: `Base ₹${formatAmount(firstCharge)} + (${extraBand} × ₹${formatAmount(chargeValue)})`,
         charge: calculateDelivery(toAmount),
       };
     }),
@@ -414,13 +429,14 @@ export default function AdminSettings() {
           <strong>Current Rule in Plain Words: </strong>
           {settings.enabled ? (
             <>
-              Orders from <strong>₹{formatAmount(minimumOrder)}</strong> up to{" "}
-              <strong>₹{formatAmount(firstDeliveryBand)}</strong> will be
-              charged <strong>₹{formatAmount(chargeValue)}</strong> for
-              delivery. Above{" "}
-              <strong>₹{formatAmount(firstDeliveryBand)}</strong>, every
-              additional <strong>₹{formatAmount(chargeStep)}</strong> of bill
-              amount adds another <strong>₹{formatAmount(chargeValue)}</strong>.
+              Orders up to <strong>₹{formatAmount(firstDeliveryBand)}</strong>{" "}
+              (starting from <strong>₹{formatAmount(minimumOrder)}</strong>{" "}
+              minimum) will be charged{" "}
+              <strong>₹{formatAmount(firstCharge)}</strong> for delivery. Above{" "}
+              <strong>₹{formatAmount(firstDeliveryBand)}</strong>, for every{" "}
+              <strong>₹{formatAmount(chargeStep)}</strong> of purchase,{" "}
+              <strong>₹{formatAmount(chargeValue)}</strong> delivery charge will
+              be applied.
             </>
           ) : (
             <span>
@@ -431,7 +447,7 @@ export default function AdminSettings() {
         </div>
 
         {/* ===================================================
-            2. FOUR SIMPLE CONTROLS WITH QUICK PRESETS
+            2. CONTROLLABLE DELIVERY FIELDS WITH QUICK PRESETS
         =================================================== */}
 
         <div className="settings-grid">
@@ -471,13 +487,14 @@ export default function AdminSettings() {
             </div>
 
             <small>
-              Starting order amount required for home delivery (e.g. ₹500).
+              Starting order amount required for home delivery (e.g. ₹
+              {formatAmount(minimumOrder)}).
             </small>
           </label>
 
           {/* STEP 2: FIRST SLAB UP TO */}
           <label className="setting-field">
-            <span>2. First Slab Maximum Limit (पहिला टप्पा मर्यादा)</span>
+            <span>2. Orders Up To Amount (पहिला ऑर्डर टप्पा)</span>
 
             <div className="input-with-symbol">
               <span aria-hidden="true">₹</span>
@@ -512,15 +529,58 @@ export default function AdminSettings() {
             </div>
 
             <small>
-              Orders from ₹{formatAmount(minimumOrder)} up to ₹
-              {formatAmount(firstDeliveryBand)} pay the single base delivery
-              charge (₹{formatAmount(chargeValue)}).
+              Orders up to ₹{formatAmount(firstDeliveryBand)} use the First
+              Range Delivery Charge below.
             </small>
           </label>
 
-          {/* STEP 3: NEXT SLAB STEP */}
+          {/* STEP 3: FIRST RANGE DELIVERY CHARGE */}
           <label className="setting-field">
-            <span>3. Next Slab Range Step (पुढील प्रत्येक टप्पा)</span>
+            <span>
+              3. Delivery Charge Up To ₹{formatAmount(firstDeliveryBand)}{" "}
+              (पहिल्या टप्प्याचा चार्ज)
+            </span>
+
+            <div className="input-with-symbol">
+              <span aria-hidden="true">₹</span>
+              <input
+                type="number"
+                name="firstDeliveryCharge"
+                min="0"
+                step="1"
+                inputMode="numeric"
+                value={settings.firstDeliveryCharge}
+                onChange={handleChange}
+                disabled={saving}
+              />
+            </div>
+
+            <div style={quickChipBarStyle}>
+              {[0, 10, 20, 30, 40, 50].map((val) => (
+                <button
+                  key={val}
+                  type="button"
+                  style={
+                    Number(settings.firstDeliveryCharge) === val
+                      ? quickChipActiveStyle
+                      : quickChipStyle
+                  }
+                  onClick={() => setFieldValue("firstDeliveryCharge", val)}
+                >
+                  {val === 0 ? "₹0 (Free)" : `₹${val}`}
+                </button>
+              ))}
+            </div>
+
+            <small>
+              Delivery charge applied for orders up to ₹
+              {formatAmount(firstDeliveryBand)}.
+            </small>
+          </label>
+
+          {/* STEP 4: EVERY PURCHASE STEP AMOUNT */}
+          <label className="setting-field">
+            <span>4. Next Slab Every Purchase Of (प्रत्येक खरेदी टप्पा)</span>
 
             <div className="input-with-symbol">
               <span aria-hidden="true">₹</span>
@@ -548,20 +608,23 @@ export default function AdminSettings() {
                   }
                   onClick={() => setFieldValue("chargePerAmount", val)}
                 >
-                  Every +₹{val}
+                  Every ₹{val}
                 </button>
               ))}
             </div>
 
             <small>
-              Above ₹{formatAmount(firstDeliveryBand)}, a new slab starts every
-              ₹{formatAmount(chargeStep)} added to the bill.
+              Above ₹{formatAmount(firstDeliveryBand)}, a new charge step
+              applies every ₹{formatAmount(chargeStep)} of purchase.
             </small>
           </label>
 
-          {/* STEP 4: DELIVERY CHARGE VALUE */}
+          {/* STEP 5: DELIVERY CHARGE PER PURCHASE STEP */}
           <label className="setting-field">
-            <span>4. Delivery Charge per Slab (डिलिव्हरी चार्ज)</span>
+            <span>
+              5. Charge Per ₹{formatAmount(chargeStep)} Purchase (पुढील प्रत्येक
+              टप्प्याचा चार्ज)
+            </span>
 
             <div className="input-with-symbol">
               <span aria-hidden="true">₹</span>
@@ -595,8 +658,8 @@ export default function AdminSettings() {
             </div>
 
             <small>
-              Base charge for Slab 1, and added for each next ₹
-              {formatAmount(chargeStep)} slab.
+              ₹{formatAmount(chargeValue)} delivery charge will be added for
+              every ₹{formatAmount(chargeStep)} purchase.
             </small>
           </label>
         </div>

@@ -108,33 +108,34 @@ export default function Checkout() {
     0,
   );
 
-  const firstDeliveryBandAmount = Number(
-    deliverySettings.firstDeliveryBandAmount ?? 750,
-  );
+const firstDeliveryBandAmount = Number(
+  deliverySettings.firstDeliveryBandAmount ?? 500,
+);
 
-  const chargePerAmount = Number(deliverySettings.chargePerAmount ?? 500);
+const chargePerAmount = Number(deliverySettings.chargePerAmount ?? 500);
 
-  const chargePerAmountValue = Number(
-    deliverySettings.chargePerAmountValue ?? 20,
-  );
+const chargePerAmountValue = Number(
+  deliverySettings.chargePerAmountValue ?? 20,
+);
 
-  let deliveryCharge = 0;
+const firstDeliveryCharge = Number(
+  deliverySettings.firstDeliveryCharge ?? chargePerAmountValue,
+);
 
-  if (deliveryEnabled) {
-    // First band
-    if (subtotal <= firstDeliveryBandAmount) {
-      deliveryCharge = chargePerAmountValue;
-    }
+let deliveryCharge = 0;
 
-    // Subsequent bands
-    else {
-      const additionalBands = Math.ceil(
-        (subtotal - firstDeliveryBandAmount) / chargePerAmount,
-      );
+if (deliveryEnabled) {
+  if (subtotal <= firstDeliveryBandAmount) {
+    deliveryCharge = firstDeliveryCharge;
+  } else {
+    const additionalBands = Math.ceil(
+      (subtotal - firstDeliveryBandAmount) / chargePerAmount,
+    );
 
-      deliveryCharge = (additionalBands + 1) * chargePerAmountValue;
-    }
+    deliveryCharge =
+      firstDeliveryCharge + additionalBands * chargePerAmountValue;
   }
+}
 
   const finalTotal = subtotal + deliveryCharge;
 
