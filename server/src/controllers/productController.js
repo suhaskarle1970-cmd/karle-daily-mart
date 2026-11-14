@@ -1,8 +1,47 @@
 import Product from "../models/Product.js";
 import { uploadImageBuffer, deleteImage } from "../config/cloudinary.js";
+import Category from "../models/Category.js";
 
 const PAGE_SIZE_DEFAULT = 20;
-const PAGE_SIZE_MAX = 60;
+const PAGE_SIZE_MAX = 100;
+
+/* =========================================================
+   SEARCH HELPERS
+========================================================= */
+
+function escapeRegex(str) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
+
+function buildFlexibleWordRegex(word) {
+  let cleaned = word.trim().replace(/['’.\-]/g, "");
+
+  // Normalize common English plurals ("washes" -> "wash", "soaps" -> "soap", "berries" -> "berri")
+  if (cleaned.length > 4 && /ies$/i.test(cleaned)) {
+    cleaned = cleaned.slice(0, -3);
+  } else if (cleaned.length > 4 && /(sh|ch|x|z|ss)es$/i.test(cleaned)) {
+    cleaned = cleaned.slice(0, -2);
+  } else if (
+    cleaned.length > 3 &&
+    !/ss$/i.test(cleaned) &&
+    /s$/i.test(cleaned)
+  ) {
+    cleaned = cleaned.slice(0, -1);
+  }
+
+  if (!cleaned) {
+    return new RegExp(escapeRegex(word.trim()), "i");
+  }
+
+  // Allow optional spaces, hyphens, or apostrophes between letters
+  // so "facewash" matches "Face Wash" and "ponds" matches "Pond's"
+  const pattern = cleaned
+    .split("")
+    .map((ch) => escapeRegex(ch))
+    .join("[\\s\\-'’.]*");
+
+  return new RegExp(pattern, "i");
+}
 
 const DEPARTMENTS = [
   "grocery-kitchen",
@@ -255,28 +294,87 @@ function parseProductTypes(raw) {
 
 export async function listProducts(req, res, next) {
   try {
+    const rawSearch = req.query.search ? String(req.query.search).trim() : "";
+    const isSearching = Boolean(rawSearch);
+
     const page = Math.max(1, parseInt(req.query.page, 10) || 1);
     const limit = Math.min(
       PAGE_SIZE_MAX,
-      Math.max(1, parseInt(req.query.limit, 10) || PAGE_SIZE_DEFAULT),
+      Math.max(
+        1,
+        parseInt(req.query.limit, 10) || (isSearching ? 60 : PAGE_SIZE_DEFAULT),
+      ),
     );
-    const { category, search, includeInactive } = req.query;
+
+    const { category, includeInactive } = req.query;
     const filter = includeInactive === "true" ? {} : { active: true };
+
     if (category) {
       filter.category = category;
     }
-    if (search && search.trim()) {
-      filter.$text = { $search: search.trim() };
+
+    if (isSearching) {
+      const words = rawSearch.split(/\s+/).filter(Boolean);
+
+      // Also build a combined regex across all words so "face wash" matches "Facewash"
+      const combinedRx = buildFlexibleWordRegex(words.join(""));
+      const combinedCategoryIds = await Category.find({
+        $or: [
+          { name: combinedRx },
+          { slug: combinedRx },
+          { department: combinedRx },
+        ],
+      }).distinct("_id");
+
+      const perWordConditions = await Promise.all(
+        words.map(async (word) => {
+          const rx = buildFlexibleWordRegex(word);
+
+          // Match categories whose name/slug/department matches this word (e.g. "Face Wash")
+          const matchingCategoryIds = await Category.find({
+            $or: [{ name: rx }, { slug: rx }, { department: rx }],
+          }).distinct("_id");
+
+          const orRules = [
+            { name: rx },
+            { description: rx },
+            { barcode: rx },
+            { "types.name": rx },
+          ];
+
+          if (matchingCategoryIds.length > 0) {
+            orRules.push({ category: { $in: matchingCategoryIds } });
+          }
+
+          return { $or: orRules };
+        }),
+      );
+
+      const combinedOrRules = [
+        { name: combinedRx },
+        { description: combinedRx },
+        { barcode: combinedRx },
+        { "types.name": combinedRx },
+      ];
+
+      if (combinedCategoryIds.length > 0) {
+        combinedOrRules.push({ category: { $in: combinedCategoryIds } });
+      }
+
+      // Match either every word (across product + category + types) OR the combined compound word
+      filter.$or = [{ $and: perWordConditions }, ...combinedOrRules];
     }
+
     const [products, total] = await Promise.all([
       Product.find(filter)
         .populate("category", "name slug department")
-        .sort(search ? { score: { $meta: "textScore" } } : { createdAt: -1 })
+        .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(limit)
         .lean(),
       Product.countDocuments(filter),
     ]);
+
     res.json({
       products,
       pagination: {

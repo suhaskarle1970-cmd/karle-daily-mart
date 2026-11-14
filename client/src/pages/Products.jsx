@@ -3,16 +3,12 @@ import { useSearchParams } from "react-router-dom";
 
 import api from "../services/api";
 import ProductCard from "../components/ProductCard";
-import {
-  LoadingGrid,
-  ErrorState,
-  EmptyState,
-} from "../components/States";
+import { LoadingGrid, ErrorState, EmptyState } from "../components/States";
 
 import "./Home.css";
 import "./Products.css";
 
-const PAGE_SIZE = 20;
+const PAGE_SIZE = 60;
 
 export default function Products() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -20,30 +16,13 @@ export default function Products() {
   const category = searchParams.get("category") || "";
   const search = searchParams.get("search") || "";
 
-  const parsedPage = Number.parseInt(
-    searchParams.get("page") || "1",
-    10,
-  );
+  const parsedPage = Number.parseInt(searchParams.get("page") || "1", 10);
 
-  const page =
-    Number.isFinite(parsedPage) && parsedPage > 0
-      ? parsedPage
-      : 1;
+  const page = Number.isFinite(parsedPage) && parsedPage > 0 ? parsedPage : 1;
 
   const [products, setProducts] = useState([]);
   const [pagination, setPagination] = useState(null);
   const [status, setStatus] = useState("loading");
-  const [searchInput, setSearchInput] = useState(search);
-
-  /*
-   * Keep the search field synchronized with the URL.
-   *
-   * This matters when navigation changes the search query
-   * from somewhere other than the form itself.
-   */
-  useEffect(() => {
-    setSearchInput(search);
-  }, [search]);
 
   /*
    * LOAD PRODUCTS
@@ -67,7 +46,6 @@ export default function Products() {
       setStatus("ready");
     } catch (error) {
       console.error("Failed to load products:", error);
-
       setStatus("error");
     }
   }, [category, search, page]);
@@ -95,10 +73,6 @@ export default function Products() {
       }
     });
 
-    /*
-     * Any filter/search change starts from page 1.
-     * Explicit pagination changes keep the current page logic.
-     */
     if (!Object.prototype.hasOwnProperty.call(next, "page")) {
       params.delete("page");
     }
@@ -106,41 +80,54 @@ export default function Products() {
     setSearchParams(params);
   }
 
-  /*
-   * SEARCH
-   */
-
-  function handleSearchSubmit(event) {
-    event.preventDefault();
-
-    updateParams({
-      search: searchInput.trim(),
-    });
-  }
-
-  /*
-   * RENDER
-   */
-
   return (
     <div className="container section">
+      {/* =====================================================
+          ACTIVE SEARCH / FILTER HEADER
+      ===================================================== */}
+
+      {search && status === "ready" && (
+        <div
+          style={{
+            display: "flex",
+            flexWrap: "wrap",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "10px",
+            marginBottom: "18px",
+          }}
+        >
+          <p style={{ margin: 0, fontSize: "15px" }}>
+            Showing <strong>{pagination?.total ?? products.length}</strong>{" "}
+            {(pagination?.total ?? products.length) === 1
+              ? "product"
+              : "products"}{" "}
+            for <strong>"{search}"</strong>
+          </p>
+
+          <button
+            type="button"
+            className="btn btn-outline"
+            style={{ padding: "6px 14px", fontSize: "13px" }}
+            onClick={() => updateParams({ search: "" })}
+          >
+            Clear search
+          </button>
+        </div>
+      )}
+
       {/* =====================================================
           LOADING
       ===================================================== */}
 
-      {status === "loading" && (
-        <LoadingGrid count={12} />
-      )}
+      {status === "loading" && <LoadingGrid count={12} />}
 
       {/* =====================================================
           ERROR
       ===================================================== */}
 
       {status === "error" && (
-        <ErrorState
-          message="Couldn't load products."
-          onRetry={load}
-        />
+        <ErrorState message="Couldn't load products." onRetry={load} />
       )}
 
       {/* =====================================================
@@ -166,10 +153,7 @@ export default function Products() {
         <>
           <div className="product-grid">
             {products.map((product) => (
-              <ProductCard
-                key={product._id}
-                product={product}
-              />
+              <ProductCard key={product._id} product={product} />
             ))}
           </div>
 
@@ -177,43 +161,39 @@ export default function Products() {
               PAGINATION
           ================================================= */}
 
-          {pagination &&
-            pagination.totalPages > 1 && (
-              <div className="pagination">
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  disabled={page <= 1}
-                  onClick={() =>
-                    updateParams({
-                      page: String(page - 1),
-                    })
-                  }
-                >
-                  Previous
-                </button>
+          {pagination && pagination.totalPages > 1 && (
+            <div className="pagination">
+              <button
+                type="button"
+                className="btn btn-outline"
+                disabled={page <= 1}
+                onClick={() =>
+                  updateParams({
+                    page: String(page - 1),
+                  })
+                }
+              >
+                Previous
+              </button>
 
-                <span>
-                  Page {pagination.page} of{" "}
-                  {pagination.totalPages}
-                </span>
+              <span>
+                Page {pagination.page} of {pagination.totalPages}
+              </span>
 
-                <button
-                  type="button"
-                  className="btn btn-outline"
-                  disabled={
-                    page >= pagination.totalPages
-                  }
-                  onClick={() =>
-                    updateParams({
-                      page: String(page + 1),
-                    })
-                  }
-                >
-                  Next
-                </button>
-              </div>
-            )}
+              <button
+                type="button"
+                className="btn btn-outline"
+                disabled={page >= pagination.totalPages}
+                onClick={() =>
+                  updateParams({
+                    page: String(page + 1),
+                  })
+                }
+              >
+                Next
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>
